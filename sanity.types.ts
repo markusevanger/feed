@@ -166,33 +166,29 @@ export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./src/app/(frontend)/page.tsx
 // Variable: POST_QUERY
-// Query: *[_type == "post"]
+// Query: *[_type == "post"] {  _id,  title,  _publishedAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        exif,      }    }  }}
 export type POST_QUERYResult = Array<{
   _id: string;
-  _type: "post";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  title?: string;
-  slug?: Slug;
-  images?: Array<{
-    asset?: {
-      _ref: string;
-      _type: "reference";
-      _weak?: boolean;
-      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-    };
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-    _key: string;
-  }>;
+  title: string | null;
+  _publishedAt: null;
+  images: Array<{
+    asset: {
+      _id: string;
+      url: string | null;
+      _createdAt: string;
+      metadata: {
+        dimensions: SanityImageDimensions | null;
+        location: Geopoint | null;
+        exif: null;
+      } | null;
+    } | null;
+  }> | null;
 }>;
 
 // Query TypeMap
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "\n    *[_type == \"post\"]": POST_QUERYResult;
+    "*[_type == \"post\"] {\n  _id,\n  title,\n  _publishedAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        exif,\n\n      }\n    }\n  }\n}": POST_QUERYResult;
   }
 }
