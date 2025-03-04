@@ -11,7 +11,7 @@ export default async function Page() {
     `*[_type == "post"] {
   _id,
   title,
-  _publishedAt,
+  _createdAt,
   images[]{
     asset->{
       _id,
@@ -28,8 +28,6 @@ export default async function Page() {
 }`
   );
   const posts = await client.fetch(POST_QUERY);
-
-  console.log(posts)
 
   return (
     <section className="container mx-auto my-10">
@@ -52,11 +50,24 @@ export default async function Page() {
 
             posts.map((post) => (
               <div key={post._id} className="sx">
-                <h2 className="font-mono text-sm">{post.title} <span className="font-xs">collection posted @ {post._publishedAt}</span></h2>
+                <h2 className="font-mono text-sm">{post.title} <span className="text-xs text-accent-foreground ">collection posted @ {new Date(post._createdAt).toLocaleDateString()}</span></h2>
                 {post.images?.map((image, index) => (
                   <div key={index}>
                     <Image className="rounded-lg shadow-xl" alt={"asd"} src={urlFor(image).url()} width={300} height={200}></Image>
-                    <div className="font-mono text-xs">{image.asset?._createdAt}</div>
+                    {
+                      image.asset ? (
+                        (() => {
+                          const createdAt = new Date(image.asset?._createdAt); // Declare the variable here
+                          return (
+                            <ul className="font-mono text-xs">
+                              <li>shot on the  {createdAt.toLocaleDateString("no")} at {createdAt.toLocaleTimeString('no')}</li>
+                              <li>location:  {image.asset.metadata?.location?.lng}, {image.asset.metadata?.location?.lat}</li>
+                            </ul>
+                          );
+                        })()
+                      ) :
+                        <p>No metadata</p>
+                    }
                   </div>
                 ))}
               </div>

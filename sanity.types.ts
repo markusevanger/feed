@@ -166,11 +166,11 @@ export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./src/app/(frontend)/page.tsx
 // Variable: POST_QUERY
-// Query: *[_type == "post"] {  _id,  title,  _publishedAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        exif,      }    }  }}
+// Query: *[_type == "post"] {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        exif,      }    }  }}
 export type POST_QUERYResult = Array<{
   _id: string;
   title: string | null;
-  _publishedAt: null;
+  _createdAt: string;
   images: Array<{
     asset: {
       _id: string;
@@ -189,6 +189,6 @@ export type POST_QUERYResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "*[_type == \"post\"] {\n  _id,\n  title,\n  _publishedAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        exif,\n\n      }\n    }\n  }\n}": POST_QUERYResult;
+    "*[_type == \"post\"] {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        exif,\n\n      }\n    }\n  }\n}": POST_QUERYResult;
   }
 }
