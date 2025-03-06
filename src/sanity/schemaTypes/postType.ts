@@ -1,5 +1,5 @@
-import {DocumentTextIcon} from '@sanity/icons'
-import {defineArrayMember, defineField, defineType} from 'sanity'
+import { DocumentTextIcon } from '@sanity/icons'
+import { defineArrayMember, defineField, defineType } from 'sanity'
 
 export const postType = defineType({
   name: 'post',
@@ -31,13 +31,14 @@ export const postType = defineType({
           options: {
             metadata: [
               'blurhash',
-              'lqip',    
-              'palette', 
-              'image',   
-              'exif',    
+              'lqip',
+              'palette',
+              'image',
+              'exif',
               'location',
             ]
           },
+          validation: (Rule) => Rule.required().error('Each image is required') // Ensure individual images are required
         })
       ],
     }),
@@ -48,7 +49,7 @@ export const postType = defineType({
       media: 'images.0',
     },
     prepare(selection) {
-      return {...selection}
+      return { ...selection }
     },
   },
 })

@@ -166,7 +166,7 @@ export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./src/app/(frontend)/page.tsx
 // Variable: POST_QUERY
-// Query: *[_type == "post"] {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        exif,      }    }  }}
+// Query: *[_type == "post"] {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        lqip,        exif {          LensMake,          LensModel,          Flash        }      }    }  }}
 export type POST_QUERYResult = Array<{
   _id: string;
   title: string | null;
@@ -179,6 +179,7 @@ export type POST_QUERYResult = Array<{
       metadata: {
         dimensions: SanityImageDimensions | null;
         location: Geopoint | null;
+        lqip: string | null;
         exif: null;
       } | null;
     } | null;
@@ -189,6 +190,6 @@ export type POST_QUERYResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "*[_type == \"post\"] {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        exif,\n\n      }\n    }\n  }\n}": POST_QUERYResult;
+    "*[_type == \"post\"] {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        lqip,\n        exif {\n          LensMake,\n          LensModel,\n          Flash\n        }\n\n      }\n    }\n  }\n}": POST_QUERYResult;
   }
 }
