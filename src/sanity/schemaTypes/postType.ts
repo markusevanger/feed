@@ -42,6 +42,21 @@ export const postType = defineType({
         })
       ],
     }),
+
+    defineField({
+      name: 'videos',
+      title: 'Videos',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'file',
+          options: {
+            accept: 'video/*'
+          },
+          validation: (Rule) => Rule.required().error('Each video is required')
+        })
+      ],
+    }),
   ],
   preview: {
     select: {

@@ -29,7 +29,8 @@
     "sanity-plugin-media": "^2.3.2",
     "styled-components": "^6.1.15",
     "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "windups": "^1.2.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
