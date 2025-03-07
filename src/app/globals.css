@@ -2,6 +2,10 @@
 
 @plugin "tailwindcss-animate";
 
+@theme {
+  --font-array: "Array", sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

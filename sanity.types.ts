@@ -39,28 +39,6 @@ export type SanityImageDimensions = {
   aspectRatio?: number;
 };
 
-export type SanityFileAsset = {
-  _id: string;
-  _type: "sanity.fileAsset";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  originalFilename?: string;
-  label?: string;
-  title?: string;
-  description?: string;
-  altText?: string;
-  sha1hash?: string;
-  extension?: string;
-  mimeType?: string;
-  size?: number;
-  assetId?: string;
-  uploadId?: string;
-  path?: string;
-  url?: string;
-  source?: SanityAssetSourceData;
-};
-
 export type Geopoint = {
   _type: "geopoint";
   lat?: number;
@@ -88,6 +66,38 @@ export type Post = {
     _type: "image";
     _key: string;
   }>;
+  videos?: Array<{
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.fileAsset";
+    };
+    _type: "file";
+    _key: string;
+  }>;
+};
+
+export type SanityFileAsset = {
+  _id: string;
+  _type: "sanity.fileAsset";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  originalFilename?: string;
+  label?: string;
+  title?: string;
+  description?: string;
+  altText?: string;
+  sha1hash?: string;
+  extension?: string;
+  mimeType?: string;
+  size?: number;
+  assetId?: string;
+  uploadId?: string;
+  path?: string;
+  url?: string;
+  source?: SanityAssetSourceData;
 };
 
 export type SanityImageCrop = {
@@ -162,11 +172,11 @@ export type Slug = {
   source?: string;
 };
 
-export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityFileAsset | Geopoint | Post | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | MediaTag | Slug;
+export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | Geopoint | Post | SanityFileAsset | SanityImageCrop | SanityImageHotspot | SanityImageAsset | SanityAssetSourceData | SanityImageMetadata | MediaTag | Slug;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./src/app/(frontend)/page.tsx
 // Variable: POST_QUERY
-// Query: *[_type == "post"] {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      metadata {        dimensions,        location,        lqip,        exif {          DateTimeOriginal,          LensMake,          LensModel        }      }    }  }}
+// Query: *[_type == "post"] | order(_createdAt desc) {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      altText,      metadata {        dimensions,        "hasLocation": defined(location),        "location": select(          defined(location) => location,          null        ),        "exif": select(          defined(exif) => {            "dateTime": exif.DateTimeOriginal,            "lensMake": exif.LensMake,            "lensModel": exif.LensModel          },          null        ),        lqip      }    }  },  videos[]{    asset->{      _id,      url,      _createdAt,      mimeType    }  }}
 export type POST_QUERYResult = Array<{
   _id: string;
   title: string | null;
@@ -176,12 +186,22 @@ export type POST_QUERYResult = Array<{
       _id: string;
       url: string | null;
       _createdAt: string;
+      altText: string | null;
       metadata: {
         dimensions: SanityImageDimensions | null;
+        hasLocation: false | true;
         location: Geopoint | null;
-        lqip: string | null;
         exif: null;
+        lqip: string | null;
       } | null;
+    } | null;
+  }> | null;
+  videos: Array<{
+    asset: {
+      _id: string;
+      url: string | null;
+      _createdAt: string;
+      mimeType: string | null;
     } | null;
   }> | null;
 }>;
@@ -190,6 +210,6 @@ export type POST_QUERYResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "*[_type == \"post\"] {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      metadata {\n        dimensions,\n        location,\n        lqip,\n        exif {\n          DateTimeOriginal,\n          LensMake,\n          LensModel\n        }\n      }\n    }\n  }\n}": POST_QUERYResult;
+    "*[_type == \"post\"] | order(_createdAt desc) {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      altText,\n      metadata {\n        dimensions,\n        \"hasLocation\": defined(location),\n        \"location\": select(\n          defined(location) => location,\n          null\n        ),\n        \"exif\": select(\n          defined(exif) => {\n            \"dateTime\": exif.DateTimeOriginal,\n            \"lensMake\": exif.LensMake,\n            \"lensModel\": exif.LensModel\n          },\n          null\n        ),\n        lqip\n      }\n    }\n  },\n  videos[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      mimeType\n    }\n  }\n}": POST_QUERYResult;
   }
 }

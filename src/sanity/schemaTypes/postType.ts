@@ -30,9 +30,7 @@ export const postType = defineType({
           type: 'image',
           options: {
             metadata: [
-              'blurhash',
               'lqip',
-              'palette',
               'image',
               'exif',
               'location',
