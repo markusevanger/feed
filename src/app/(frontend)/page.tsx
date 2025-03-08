@@ -39,6 +39,7 @@ export default async function Page() {
     }
   },
   videos[]{
+    orientation,
     asset->{
       _id,
       url,
@@ -99,3 +100,4 @@ export default async function Page() {
     </>
   );
 }
+

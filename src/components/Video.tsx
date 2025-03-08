@@ -7,12 +7,13 @@ export default function Video({ video, className }: { video: VideoType; classNam
     if (!video.asset?.url) return null;
 
     const createdAt = video.asset._createdAt ? new Date(video.asset._createdAt) : undefined;
+    const orientation = video.orientation;
 
     return (
         <MediaWrapper
             createdAt={createdAt}
             assetId={video.asset._id}
-            className={cn(className)}
+            className={cn(className, orientation === "horizontal" ? "col-span-2" : "")}
         >
             <Suspense fallback={<Skeleton className="rounded-lg shadow-xl w-full h-full" />}>
                 <video

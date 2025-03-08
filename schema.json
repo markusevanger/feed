@@ -352,6 +352,23 @@
                 },
                 "optional": true
               },
+              "orientation": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "union",
+                  "of": [
+                    {
+                      "type": "string",
+                      "value": "horizontal"
+                    },
+                    {
+                      "type": "string",
+                      "value": "vertical"
+                    }
+                  ]
+                },
+                "optional": true
+              },
               "_type": {
                 "type": "objectAttribute",
                 "value": {

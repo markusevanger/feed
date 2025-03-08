@@ -51,6 +51,22 @@ export const postType = defineType({
           options: {
             accept: 'video/*'
           },
+          fields: [
+            defineField({
+              name: 'orientation',
+              title: 'Video Orientation',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Horizontal', value: 'horizontal' },
+                  { title: 'Vertical', value: 'vertical' }
+                ],
+                layout: 'radio'
+              },
+              initialValue: 'horizontal',
+              validation: (Rule) => Rule.required().error('Video orientation must be specified')
+            })
+          ],
           validation: (Rule) => Rule.required().error('Each video is required')
         })
       ],

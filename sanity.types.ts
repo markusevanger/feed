@@ -73,6 +73,7 @@ export type Post = {
       _weak?: boolean;
       [internalGroqTypeReferenceTo]?: "sanity.fileAsset";
     };
+    orientation?: "horizontal" | "vertical";
     _type: "file";
     _key: string;
   }>;
@@ -176,7 +177,7 @@ export type AllSanitySchemaTypes = SanityImagePaletteSwatch | SanityImagePalette
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./src/app/(frontend)/page.tsx
 // Variable: POST_QUERY
-// Query: *[_type == "post"] | order(_createdAt desc) {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      altText,      metadata {        dimensions,        "hasLocation": defined(location),        "location": select(          defined(location) => location,          null        ),        "exif": select(          defined(exif) => {            "dateTime": exif.DateTimeOriginal,            "lensMake": exif.LensMake,            "lensModel": exif.LensModel          },          null        ),        lqip      }    }  },  videos[]{    asset->{      _id,      url,      _createdAt,      mimeType    }  }}
+// Query: *[_type == "post"] | order(_createdAt desc) {  _id,  title,  _createdAt,  images[]{    asset->{      _id,      url,      _createdAt,      altText,      metadata {        dimensions,        "hasLocation": defined(location),        "location": select(          defined(location) => location,          null        ),        "exif": select(          defined(exif) => {            "dateTime": exif.DateTimeOriginal,            "lensMake": exif.LensMake,            "lensModel": exif.LensModel          },          null        ),        lqip      }    }  },  videos[]{    orientation,    asset->{      _id,      url,      _createdAt,      mimeType    }  }}
 export type POST_QUERYResult = Array<{
   _id: string;
   title: string | null;
@@ -197,6 +198,7 @@ export type POST_QUERYResult = Array<{
     } | null;
   }> | null;
   videos: Array<{
+    orientation: "horizontal" | "vertical" | null;
     asset: {
       _id: string;
       url: string | null;
@@ -210,6 +212,6 @@ export type POST_QUERYResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "*[_type == \"post\"] | order(_createdAt desc) {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      altText,\n      metadata {\n        dimensions,\n        \"hasLocation\": defined(location),\n        \"location\": select(\n          defined(location) => location,\n          null\n        ),\n        \"exif\": select(\n          defined(exif) => {\n            \"dateTime\": exif.DateTimeOriginal,\n            \"lensMake\": exif.LensMake,\n            \"lensModel\": exif.LensModel\n          },\n          null\n        ),\n        lqip\n      }\n    }\n  },\n  videos[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      mimeType\n    }\n  }\n}": POST_QUERYResult;
+    "*[_type == \"post\"] | order(_createdAt desc) {\n  _id,\n  title,\n  _createdAt,\n  images[]{\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      altText,\n      metadata {\n        dimensions,\n        \"hasLocation\": defined(location),\n        \"location\": select(\n          defined(location) => location,\n          null\n        ),\n        \"exif\": select(\n          defined(exif) => {\n            \"dateTime\": exif.DateTimeOriginal,\n            \"lensMake\": exif.LensMake,\n            \"lensModel\": exif.LensModel\n          },\n          null\n        ),\n        lqip\n      }\n    }\n  },\n  videos[]{\n    orientation,\n    asset->{\n      _id,\n      url,\n      _createdAt,\n      mimeType\n    }\n  }\n}": POST_QUERYResult;
   }
 }
