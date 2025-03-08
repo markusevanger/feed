@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { VideoType, MediaWrapper } from "./FeedMedia";
 import { cn } from "@/lib/utils";
+import VideoSkeleton from "./ui/VideoSkeleton";
 
 export default function Video({ video, className }: { video: VideoType; className?: string }) {
     if (!video.asset?.url) return null;
@@ -15,7 +16,7 @@ export default function Video({ video, className }: { video: VideoType; classNam
             assetId={video.asset._id}
             className={cn(className, orientation === "horizontal" ? "col-span-2" : "")}
         >
-            <Suspense fallback={<Skeleton className="rounded-lg shadow-xl w-full h-full" />}>
+            <Suspense fallback={<VideoSkeleton />}>
                 <video
                     autoPlay
                     muted

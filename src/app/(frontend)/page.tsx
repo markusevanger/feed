@@ -55,10 +55,10 @@ export default async function Page() {
   return (
     <>
       <section className="container mx-auto px-2 my-10">
-        <div className="flex w-full justify-between">
+        <div className="flex flex-col lg:flex-row w-full items-center justify-between mb-10">
           <h1 className="flex font-array text-2xl"><Windup text="feed" /><span className="animate-pulse">_</span></h1>
-          <h2 className="text-sm text-muted-foreground">🚧 under construction & work in progress 🏗️</h2>
-          <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm text-muted-foreground">🚧 under construction & work in progress 🏗️</h2>
             <ModeToggle />
           </div>
         </div>
@@ -78,7 +78,7 @@ export default async function Page() {
                     <p className="text-xs text-accent-foreground font-mono ">posted @ {new Date(post._createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-8">
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 p-8">
                   {post.images?.map((image, index: number) => (
                     <FeedMedia key={`image-${index}`} media={{ type: 'image', data: image }} />
                   ))}

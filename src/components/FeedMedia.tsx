@@ -3,6 +3,10 @@ import { POST_QUERYResult } from "../../sanity.types";
 import Image from 'next/image'
 import MetadataDialog from "./MetadataDialog";
 import Video from "./Video";
+import { cn } from "@/lib/utils";
+
+
+
 
 /** Interface only because sanity typegen stupid */
 export interface ExifMetadata {
@@ -39,7 +43,7 @@ const isHorizontal = (aspectRatio: number) => aspectRatio > 1;
 
 export function MediaWrapper({ children, createdAt, assetId, metadata, altText, className }: MediaWrapperProps) {
   return (
-    <div key={assetId} className={`relative ${className} w-full h-full max-h-140 overflow-hidden`}>
+    <div key={assetId} className={cn(`relative w-full h-full max-h-140 overflow-hidden`, className)}>
       {children}
       <div className="absolute bottom-2 left-4">
         {metadata && (
@@ -74,9 +78,9 @@ export default function FeedMedia({ media }: { media: MediaType }) {
         assetId={image.asset?._id}
         metadata={image.asset?.metadata}
         altText={image.asset?.altText}
-        className={horizontal ? "col-span-2" : ""}
+        className={horizontal ? "lg:col-span-2" : "lg:col-span-1"}
       >
-        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">x: {width} y: {height}</div>
+        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">x: {width} y: {height}</div>
         <Image
           className="rounded-lg w-full h-full object-cover"
           alt={image.asset?.altText || "Image"}
