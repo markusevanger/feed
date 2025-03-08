@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Skeleton } from "./ui/skeleton";
 import { VideoType, MediaWrapper } from "./FeedMedia";
 import { cn } from "@/lib/utils";
 import VideoSkeleton from "./ui/VideoSkeleton";
