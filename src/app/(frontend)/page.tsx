@@ -56,6 +56,7 @@ export default async function Page() {
       <section className="container mx-auto px-2 my-10">
         <div className="flex w-full justify-between">
           <h1 className="flex font-array text-2xl"><Windup text="feed" /><span className="animate-pulse">_</span></h1>
+          <h2 className="text-sm text-muted-foreground">🚧 under construction & work in progress 🏗️</h2>
           <div>
             <ModeToggle />
           </div>
