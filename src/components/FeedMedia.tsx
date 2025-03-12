@@ -86,7 +86,7 @@ export default function FeedMedia({ media }: { media: MediaType }) {
           alt={image.asset?.altText || "Image"}
           placeholder="blur"
           blurDataURL={image.asset?.metadata?.lqip || ''}
-          src={urlFor(image).url()}
+          src={urlFor(image).auto("format").url()}
           width={width}
           height={height}
         />
