@@ -1,5 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NEXT_PUBLIC_SANITY_PROJECT_ID",
+    "NEXT_PUBLIC_SANITY_DATASET",
+    "NEXT_PUBLIC_SANITY_API_VERSION",
+    "MEDIA_SERVER_URL",
+    "API_KEY",
+    "SANITY_STUDIO_MEDIA_SERVER_URL",
+    "SANITY_STUDIO_MEDIA_API_KEY",
+    "MEDIA_SERVER_HOSTNAME"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
