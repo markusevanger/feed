@@ -42,7 +42,9 @@ export default function VideoUploadInput(props: ObjectInputProps) {
         _key: existingKey || nanoid(),
         url: result.url,
         mimeType: result.mimeType,
-        orientation: 'horizontal', // Default, user can change
+        orientation: result.orientation || 'horizontal',
+        thumbnailUrl: result.thumbnailUrl,
+        lqip: result.lqip,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');

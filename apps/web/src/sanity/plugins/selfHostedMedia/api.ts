@@ -5,44 +5,64 @@ import type { UploadResponse } from './types';
 const MEDIA_SERVER_URL = process.env.SANITY_STUDIO_MEDIA_SERVER_URL;
 const MEDIA_API_KEY = process.env.SANITY_STUDIO_MEDIA_API_KEY;
 
+export type UploadProgressCallback = (progress: number) => void;
+
 // Upload directly to media server if configured, otherwise fall back to API route
-export async function uploadFile(file: File): Promise<UploadResponse> {
+export async function uploadFile(
+  file: File,
+  onProgress?: UploadProgressCallback
+): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  // Direct upload to media server (bypasses Vercel's 4.5MB limit)
-  if (MEDIA_SERVER_URL) {
-    const headers: HeadersInit = {};
-    if (MEDIA_API_KEY) {
-      headers['Authorization'] = `Bearer ${MEDIA_API_KEY}`;
-    }
+  const url = MEDIA_SERVER_URL ? `${MEDIA_SERVER_URL}/upload` : '/api/upload';
 
-    const response = await fetch(`${MEDIA_SERVER_URL}/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
+  // Use XMLHttpRequest for progress tracking
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && onProgress) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onProgress(progress);
+      }
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(error.error || error.message || 'Upload failed');
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response);
+        } catch {
+          reject(new Error('Invalid response from server'));
+        }
+      } else {
+        try {
+          const error = JSON.parse(xhr.responseText);
+          reject(new Error(error.error || error.message || 'Upload failed'));
+        } catch {
+          reject(new Error(xhr.statusText || 'Upload failed'));
+        }
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('Network error during upload'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload cancelled'));
+    });
+
+    xhr.open('POST', url);
+
+    // Add auth header for direct media server uploads
+    if (MEDIA_SERVER_URL && MEDIA_API_KEY) {
+      xhr.setRequestHeader('Authorization', `Bearer ${MEDIA_API_KEY}`);
     }
 
-    return response.json();
-  }
-
-  // Fallback: upload through Next.js API route
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    body: formData,
+    xhr.send(formData);
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || error.message || 'Upload failed');
-  }
-
-  return response.json();
 }
 
 export async function deleteFile(url: string): Promise<void> {

@@ -1,21 +1,22 @@
 import FeedMedia from "@/components/FeedMedia";
+import IntroAnimation from "@/components/IntroAnimation";
+import PostFilterBadges from "@/components/PostFilterBadges";
 import { ModeToggle } from "@/components/ui/ModeToggle";
 import Windup from "@/components/Windup";
+import { packIntoRows } from "@/lib/grid-layout";
 import { client } from "@/sanity/lib/client";
 import { isSameDay } from "date-fns";
 import Link from "next/link";
-import type { Post, SelfHostedImage, SelfHostedVideo } from "../../../sanity.types";
+import type { Post, SelfHostedMedia } from "../../../sanity.types";
 
 // Tag for on-demand revalidation via webhook
 export const revalidate = false; // Only revalidate when triggered
 
 // Extend types with _key from array items
-type PostImage = { _key: string } & SelfHostedImage;
-type PostVideo = { _key: string } & SelfHostedVideo;
+type PostMediaItem = { _key: string } & SelfHostedMedia;
 
-interface PostWithMedia extends Omit<Post, 'images' | 'videos'> {
-  images: PostImage[] | null;
-  videos: PostVideo[] | null;
+interface PostWithMedia extends Omit<Post, 'media'> {
+  media: PostMediaItem[] | null;
 }
 
 const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
@@ -26,9 +27,10 @@ const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
   _rev,
   title,
   slug,
-  images[]{
+  media[]{
     _key,
     _type,
+    mediaType,
     url,
     width,
     height,
@@ -36,23 +38,27 @@ const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
     lqip,
     alt,
     exif,
-    location
-  },
-  videos[]{
-    _key,
-    _type,
-    url,
+    location,
     mimeType,
     orientation
   }
 }`;
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ post?: string }>;
+}) {
+  const { post: activeSlug } = await searchParams;
   const posts = await client.fetch<PostWithMedia[]>(POST_QUERY);
 
+  const filteredPosts = activeSlug
+    ? posts.filter((post) => post.slug?.current === activeSlug)
+    : posts;
+
   return (
-    <>
-      <section className="container mx-auto px-2 my-10">
+    <IntroAnimation>
+      <section className="container mx-auto px-2 my-10 min-h-screen">
         <div className="flex flex-col lg:flex-row w-full items-center justify-between mb-10">
           <h1 className="flex font-array text-2xl"><Windup text="feed" /><span className="animate-pulse">_</span></h1>
           <div className="flex items-center gap-2">
@@ -61,9 +67,13 @@ export default async function Page() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} />
+        </div>
+
         <div className="flex flex-col gap-8 lg:px-40">
-          {posts &&
-            posts.map((post) => (
+          {filteredPosts && filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
               <div key={post._id} className="">
                 <div className="flex justify-between border-b border-border mb-2 pb-1 font-array">
                   <h2 className="font-mono text-sm">{post.title}</h2>
@@ -77,24 +87,36 @@ export default async function Page() {
                   </div>
                 </div>
                 <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 p-8">
-                  {post.images?.map((image) => (
-                    <FeedMedia key={image._key} media={{ type: 'image', data: image }} />
-                  ))}
-                  {post.videos?.map((video) => (
-                    <FeedMedia key={video._key} media={{ type: 'video', data: video }} />
-                  ))}
+                  {post.media && post.media.length > 0 ? (
+                    packIntoRows(post.media).flatMap((row) =>
+                      row.items.map((item) => (
+                        <FeedMedia
+                          key={item.media._key}
+                          media={item.media}
+                          colSpan={item.colSpan as 1 | 2 | 3}
+                        />
+                      ))
+                    )
+                  ) : (
+                    <p className="text-muted-foreground font-mono col-span-3 text-center py-8">no media :(</p>
+                  )}
                 </div>
               </div>
-            ))}
+            ))
+          ) : (
+            <div className="flex justify-center items-center py-20">
+              <p className="text-muted-foreground font-mono">no items :(</p>
+            </div>
+          )}
         </div>
       </section>
       <footer className="flex justify-center py-10 items-center ">
         <div className="text-sm px-4 py-1 bg-muted rounded-full opacity-60 hover:opacity-100 transition-opacity">
           <p>
-            utviklet av <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>
+            utvikling og reising av <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>
           </p>
         </div>
       </footer>
-    </>
+    </IntroAnimation>
   );
 }

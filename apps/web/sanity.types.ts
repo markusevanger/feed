@@ -13,11 +13,40 @@
  */
 
 // Source: schema.json
+export type Exif = {
+  dateTime?: string;
+  lensMake?: string;
+  lensModel?: string;
+};
+
+export type Location = {
+  lat?: number;
+  lon?: number;
+};
+
+export type SelfHostedMedia = {
+  _type: "selfHostedMedia";
+  mediaType: "image" | "video";
+  url?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
+  lqip?: string;
+  alt?: string;
+  exif?: Exif;
+  location?: Location;
+  mimeType?: string;
+  orientation?: "horizontal" | "vertical";
+  thumbnailUrl?: string;
+};
+
 export type SelfHostedVideo = {
   _type: "selfHostedVideo";
   url: string;
   mimeType: string;
   orientation: "horizontal" | "vertical";
+  thumbnailUrl?: string;
+  lqip?: string;
 };
 
 export type SelfHostedImage = {
@@ -47,12 +76,17 @@ export type Post = {
   _rev: string;
   title: string;
   slug: Slug;
-  images?: Array<{
-    _key: string;
-  } & SelfHostedImage>;
-  videos?: Array<{
-    _key: string;
-  } & SelfHostedVideo>;
+  media?: Array<
+    {
+      _key: string;
+    } & SelfHostedMedia
+  >;
+};
+
+export type Slug = {
+  _type: "slug";
+  current: string;
+  source?: string;
 };
 
 export type MediaTag = {
@@ -85,25 +119,37 @@ export type SanityImagePalette = {
 
 export type SanityImageDimensions = {
   _type: "sanity.imageDimensions";
-  height?: number;
-  width?: number;
-  aspectRatio?: number;
+  height: number;
+  width: number;
+  aspectRatio: number;
+};
+
+export type SanityImageMetadata = {
+  _type: "sanity.imageMetadata";
+  location?: Geopoint;
+  dimensions?: SanityImageDimensions;
+  palette?: SanityImagePalette;
+  lqip?: string;
+  blurHash?: string;
+  thumbHash?: string;
+  hasAlpha?: boolean;
+  isOpaque?: boolean;
 };
 
 export type SanityImageHotspot = {
   _type: "sanity.imageHotspot";
-  x?: number;
-  y?: number;
-  height?: number;
-  width?: number;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
 };
 
 export type SanityImageCrop = {
   _type: "sanity.imageCrop";
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
 };
 
 export type SanityFileAsset = {
@@ -126,6 +172,13 @@ export type SanityFileAsset = {
   path?: string;
   url?: string;
   source?: SanityAssetSourceData;
+};
+
+export type SanityAssetSourceData = {
+  _type: "sanity.assetSourceData";
+  name?: string;
+  id?: string;
+  url?: string;
 };
 
 export type SanityImageAsset = {
@@ -151,17 +204,6 @@ export type SanityImageAsset = {
   source?: SanityAssetSourceData;
 };
 
-export type SanityImageMetadata = {
-  _type: "sanity.imageMetadata";
-  location?: Geopoint;
-  dimensions?: SanityImageDimensions;
-  palette?: SanityImagePalette;
-  lqip?: string;
-  blurHash?: string;
-  hasAlpha?: boolean;
-  isOpaque?: boolean;
-};
-
 export type Geopoint = {
   _type: "geopoint";
   lat?: number;
@@ -169,18 +211,30 @@ export type Geopoint = {
   alt?: number;
 };
 
-export type Slug = {
-  _type: "slug";
-  current: string;
-  source?: string;
-};
+export type AllSanitySchemaTypes =
+  | Exif
+  | Location
+  | SelfHostedMedia
+  | SelfHostedVideo
+  | SelfHostedImage
+  | Post
+  | Slug
+  | MediaTag
+  | SanityImagePaletteSwatch
+  | SanityImagePalette
+  | SanityImageDimensions
+  | SanityImageMetadata
+  | SanityImageHotspot
+  | SanityImageCrop
+  | SanityFileAsset
+  | SanityAssetSourceData
+  | SanityImageAsset
+  | Geopoint;
 
-export type SanityAssetSourceData = {
-  _type: "sanity.assetSourceData";
-  name?: string;
-  id?: string;
-  url?: string;
-};
-
-export type AllSanitySchemaTypes = SelfHostedVideo | SelfHostedImage | Post | MediaTag | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
+
+type ArrayOf<T> = Array<
+  T & {
+    _key: string;
+  }
+>;

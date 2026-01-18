@@ -41,6 +41,12 @@ export interface VideoMetadata {
   orientation?: 'horizontal' | 'vertical';
   codec?: string;
   frameRate?: number;
+  // Thumbnail and placeholder
+  thumbnailUrl?: string;
+  lqip?: string;
+  // Transcoding info
+  transcoded?: boolean;
+  originalMimeType?: string;
 }
 
 // Response from media server upload endpoint
@@ -62,6 +68,10 @@ export interface UploadResponse {
   // Video-specific
   duration?: number;
   orientation?: 'horizontal' | 'vertical';
+  thumbnailUrl?: string;
+  // Transcoding info
+  transcoded?: boolean;
+  originalMimeType?: string;
 }
 
 // Sanity document types for self-hosted media
@@ -91,6 +101,35 @@ export interface SelfHostedVideo {
   url: string;
   mimeType: string;
   orientation: 'horizontal' | 'vertical';
+  thumbnailUrl?: string;
+  lqip?: string;
+}
+
+// Unified media type that can be either image or video
+export interface SelfHostedMedia {
+  _type: 'selfHostedMedia';
+  _key?: string;
+  mediaType: 'image' | 'video';
+  url: string;
+  // Image-specific fields
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
+  lqip?: string;
+  alt?: string;
+  exif?: {
+    dateTime?: string;
+    lensMake?: string;
+    lensModel?: string;
+  };
+  location?: {
+    lat: number;
+    lon: number;
+  };
+  // Video-specific fields
+  mimeType?: string;
+  orientation?: 'horizontal' | 'vertical';
+  thumbnailUrl?: string;
 }
 
 // Media browser types

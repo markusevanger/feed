@@ -561,7 +561,7 @@ export function MediaBrowserTool() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 200000,
           }}
           onClick={() => setDeleteConfirm(null)}
         >

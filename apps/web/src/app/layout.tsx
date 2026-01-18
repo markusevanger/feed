@@ -4,6 +4,7 @@
 
 import localFont from 'next/font/local'
 import { ThemeProvider } from "@/components/theme-provider";
+import { BreakpointIndicator } from "@/components/BreakpointIndicator";
 import "./globals.css";
 
 
@@ -46,6 +47,7 @@ export default function RootLayout({
           enableSystem
         >
           {children}
+          <BreakpointIndicator />
         </ThemeProvider>
       </body>
 

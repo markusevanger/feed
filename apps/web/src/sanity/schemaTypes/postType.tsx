@@ -1,6 +1,7 @@
 import React from 'react'
 import { DocumentTextIcon } from '@sanity/icons'
 import { defineArrayMember, defineField, defineType } from 'sanity'
+import BulkMediaUpload from '../plugins/selfHostedMedia/BulkMediaUpload'
 
 export const postType = defineType({
   name: 'post',
@@ -22,33 +23,27 @@ export const postType = defineType({
       },
     }),
     defineField({
-      name: 'images',
-      title: 'Images',
+      name: 'media',
+      title: 'Media',
       type: 'array',
-      validation: (Rule) => Rule.min(1).error('At least one image is required'),
+      validation: (Rule) => Rule.min(1).error('At least one media item is required'),
       of: [
         defineArrayMember({
-          type: 'selfHostedImage',
+          type: 'selfHostedMedia',
         })
       ],
-    }),
-    defineField({
-      name: 'videos',
-      title: 'Videos',
-      type: 'array',
-      of: [
-        defineArrayMember({
-          type: 'selfHostedVideo',
-        })
-      ],
+      components: {
+        input: BulkMediaUpload,
+      },
     }),
   ],
   preview: {
     select: {
       title: 'title',
-      imageUrl: 'images.0.url',
+      firstMedia: 'media.0',
     },
-    prepare({ title, imageUrl }) {
+    prepare({ title, firstMedia }) {
+      const imageUrl = firstMedia?.mediaType === 'image' ? firstMedia?.url : undefined;
       return {
         title,
         media: imageUrl ? (

@@ -1,22 +1,24 @@
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogTrigger, DialogFooter } from "./ui/dialog";
 import { Camera, Clock, InfoIcon, MapPin } from "lucide-react";
-import { SelfHostedImage } from "./FeedMedia";
+import { SelfHostedMedia } from "./FeedMedia";
 import { Badge } from "./ui/badge";
 
 interface MetadataDialogProps {
-  image: SelfHostedImage;
+  media: SelfHostedMedia;
   createdAt?: Date;
 }
 
-export default function MetadataDialog({ image, createdAt }: MetadataDialogProps) {
-  const displayDate = createdAt || new Date();
-  const { exif, location } = image;
+export default function MetadataDialog({ media, createdAt }: MetadataDialogProps) {
+  const { exif, location } = media;
+
+  // Don't render if no date available to avoid hydration mismatch with new Date()
+  if (!createdAt) return null;
 
   return (
     <Dialog>
       <DialogTrigger>
         <Badge variant="secondary" className="font-mono opacity-75 hover:opacity-100 cursor-pointer transition-opacity">
-          {displayDate.toLocaleDateString("no")} at {displayDate.toLocaleTimeString('no')}
+          {createdAt.toLocaleDateString("no")} at {createdAt.toLocaleTimeString('no')}
           <InfoIcon size={16} className="ml-2" />
         </Badge>
       </DialogTrigger>
@@ -27,7 +29,7 @@ export default function MetadataDialog({ image, createdAt }: MetadataDialogProps
         <DialogDescription>
           <li className="list-none">
             <Clock size={16} className="mr-2 inline-block" />
-            created: {displayDate.toLocaleDateString("no")} at {displayDate.toLocaleTimeString('no')}
+            created: {createdAt.toLocaleDateString("no")} at {createdAt.toLocaleTimeString('no')}
           </li>
           <li className="list-none">
             <MapPin size={16} className="mr-2 inline-block" />

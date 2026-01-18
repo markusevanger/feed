@@ -2,6 +2,9 @@ import sharp from 'sharp';
 import exifReader from 'exif-reader';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'fs/promises';
+import path from 'path';
+import { nanoid } from 'nanoid';
 import type { ImageMetadata, VideoMetadata } from '@feed/shared';
 
 const execAsync = promisify(exec);
@@ -204,4 +207,73 @@ export async function extractVideoMetadata(
   }
 
   return result;
+}
+
+export interface VideoThumbnailResult {
+  thumbnailUrl: string;
+  lqip: string;
+  width: number;
+  height: number;
+  aspectRatio: number;
+}
+
+/**
+ * Extract a thumbnail from a video file and generate LQIP
+ * @param videoPath Path to the video file
+ * @param outputDir Directory to save the thumbnail
+ * @param publicUrl Base URL for the thumbnail
+ * @returns Thumbnail URL and LQIP data
+ */
+export async function extractVideoThumbnail(
+  videoPath: string,
+  outputDir: string,
+  publicUrl: string
+): Promise<VideoThumbnailResult | null> {
+  const thumbnailId = nanoid(12);
+  const thumbnailFilename = `${thumbnailId}.jpg`;
+  const thumbnailPath = path.join(outputDir, thumbnailFilename);
+
+  try {
+    // Extract frame at 1 second (or 0 if video is shorter)
+    // Using -ss before -i for faster seeking
+    await execAsync(
+      `ffmpeg -ss 1 -i "${videoPath}" -vframes 1 -q:v 2 -y "${thumbnailPath}" 2>/dev/null || ` +
+      `ffmpeg -ss 0 -i "${videoPath}" -vframes 1 -q:v 2 -y "${thumbnailPath}"`
+    );
+
+    // Read the thumbnail and process with sharp
+    const thumbnailBuffer = await fs.readFile(thumbnailPath);
+    const image = sharp(thumbnailBuffer);
+    const metadata = await image.metadata();
+
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not determine thumbnail dimensions');
+    }
+
+    // Generate LQIP (Low Quality Image Placeholder)
+    const lqipBuffer = await image
+      .resize(20, 20, { fit: 'inside' })
+      .jpeg({ quality: 50 })
+      .blur(2)
+      .toBuffer();
+
+    const lqip = `data:image/jpeg;base64,${lqipBuffer.toString('base64')}`;
+
+    return {
+      thumbnailUrl: `${publicUrl}/files/thumbnails/${thumbnailFilename}`,
+      lqip,
+      width: metadata.width,
+      height: metadata.height,
+      aspectRatio: Number((metadata.width / metadata.height).toFixed(4)),
+    };
+  } catch (e) {
+    console.warn('Failed to extract video thumbnail:', e);
+    // Clean up partial thumbnail if it exists
+    try {
+      await fs.unlink(thumbnailPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+    return null;
+  }
 }
