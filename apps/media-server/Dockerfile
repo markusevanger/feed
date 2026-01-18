@@ -59,4 +59,4 @@ WORKDIR /app/apps/media-server
 
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/apps/media-server/src/index.js"]
