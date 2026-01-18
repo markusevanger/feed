@@ -6,6 +6,9 @@ import { isSameDay } from "date-fns";
 import Link from "next/link";
 import type { Post, SelfHostedImage, SelfHostedVideo } from "../../../sanity.types";
 
+// Tag for on-demand revalidation via webhook
+export const revalidate = false; // Only revalidate when triggered
+
 // Extend types with _key from array items
 type PostImage = { _key: string } & SelfHostedImage;
 type PostVideo = { _key: string } & SelfHostedVideo;
