@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Feed is a single-user social media timeline built with Next.js 15 and Sanity CMS. It displays a curated feed of posts containing images and videos with rich EXIF metadata. The project uses **self-hosted media storage** to avoid Sanity CDN costs.
+Feed is a single-user social media timeline built with Next.js 16 and Sanity CMS. It displays a curated feed of posts containing images and videos with rich EXIF metadata. The project uses **self-hosted media storage** to avoid Sanity CDN costs.
 
 ## Monorepo Structure
 
@@ -12,7 +12,7 @@ This is a **pnpm + Turborepo** monorepo with the following packages:
 
 ```
 /apps
-  /web                  # Next.js 15 frontend + Sanity Studio
+  /web                  # Next.js 16 frontend + Sanity Studio
   /media-server         # Express media server with metadata extraction
 
 /packages
@@ -47,8 +47,8 @@ pnpm --filter @feed/web sanity:typegen
 ## Architecture
 
 ### Tech Stack
-- **Frontend**: Next.js 15 with Turbopack, React 18, TypeScript
-- **CMS**: Sanity CMS with next-sanity integration (content only, no media hosting)
+- **Frontend**: Next.js 16 with Turbopack, React 19, TypeScript
+- **CMS**: Sanity 5 with next-sanity integration (content only, no media hosting)
 - **Media**: Self-hosted Express server with Sharp for metadata extraction
 - **Styling**: Tailwind CSS 4, shadcn/ui (New York style), Radix UI primitives
 - **Monorepo**: pnpm workspaces + Turborepo
@@ -131,8 +131,10 @@ docker-compose.yml      # Local development
 - `NEXT_PUBLIC_SANITY_PROJECT_ID` (required)
 - `NEXT_PUBLIC_SANITY_DATASET` (required)
 - `NEXT_PUBLIC_SANITY_API_VERSION` (defaults to 2025-03-03)
-- `SANITY_STUDIO_MEDIA_SERVER_URL` - Media server URL for Studio uploads
-- `SANITY_STUDIO_MEDIA_API_KEY` - Optional API key for upload auth
+- `MEDIA_SERVER_URL` - Media server URL for API routes (required for media features)
+- `MEDIA_API_KEY` - API key for media server authentication
+- `SANITY_STUDIO_MEDIA_SERVER_URL` - Media server URL for Studio uploads (can be same as MEDIA_SERVER_URL)
+- `SANITY_STUDIO_MEDIA_API_KEY` - API key for Studio uploads (can be same as MEDIA_API_KEY)
 - `MEDIA_SERVER_HOSTNAME` - Hostname for Next.js Image optimization
 
 **Media Server (apps/media-server/.env):**

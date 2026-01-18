@@ -9,9 +9,9 @@ const nextConfig: NextConfig = {
       {
         hostname: 'localhost',
       },
-      ...(process.env.MEDIA_SERVER_HOSTNAME
-        ? [{ hostname: process.env.MEDIA_SERVER_HOSTNAME }]
-        : []),
+      {
+        hostname: 'cdn.markusevanger.no',
+      },
     ],
   },
 };
