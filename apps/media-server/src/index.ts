@@ -308,6 +308,7 @@ app.get('/stats', authenticate, apiLimiter, async (_req, res) => {
       config: {
         minFreeSpaceMB: MIN_FREE_SPACE_MB,
         maxFileSizeMB: 500,
+        publicUrl: PUBLIC_URL,
       },
     });
   } catch (error) {

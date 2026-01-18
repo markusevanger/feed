@@ -16,7 +16,7 @@ import {
   Badge,
   Button,
 } from '@sanity/ui';
-import { ResetIcon, ImageIcon, PlayIcon, DatabaseIcon, TrashIcon } from '@sanity/icons';
+import { ResetIcon, ImageIcon, PlayIcon, DatabaseIcon, TrashIcon, ControlsIcon } from '@sanity/icons';
 
 interface MediaFile {
   id: string;
@@ -31,6 +31,20 @@ interface MediaListResponse {
   images: MediaFile[];
   videos: MediaFile[];
   total: number;
+}
+
+interface UnusedMediaResponse {
+  unused: {
+    images: MediaFile[];
+    videos: MediaFile[];
+    totalCount: number;
+    totalSize: number;
+  };
+  all: {
+    imagesCount: number;
+    videosCount: number;
+    totalCount: number;
+  };
 }
 
 interface MediaStats {
@@ -63,6 +77,7 @@ interface MediaStats {
   config: {
     minFreeSpaceMB: number;
     maxFileSizeMB: number;
+    publicUrl?: string;
   };
 }
 
@@ -123,18 +138,43 @@ function StorageBar({
   );
 }
 
-function StatsPanel({ stats }: { stats: MediaStats }) {
+function StatsPanel({ stats, cdnUrl }: { stats: MediaStats; cdnUrl: string | null }) {
   const diskPercent = stats.disk.usedPercent;
   const diskTone =
     diskPercent > 90 ? 'critical' : diskPercent > 75 ? 'caution' : 'positive';
 
+  const isLocalhost = cdnUrl?.includes('localhost');
+
   return (
     <Card padding={4} radius={2} shadow={1}>
       <Stack space={4}>
-        <Flex align="center" gap={2}>
-          <DatabaseIcon />
-          <Heading size={0}>Storage</Heading>
-        </Flex>
+        <Box>
+          <Stack space={2}>
+            <Text size={0} muted>
+              CDN
+            </Text>
+            <Flex align="center" gap={2}>
+              <Badge tone={isLocalhost ? 'caution' : 'positive'} fontSize={0}>
+                {isLocalhost ? 'DEV' : 'PROD'}
+              </Badge>
+              <Text size={1} style={{ wordBreak: 'break-all' }}>
+                {cdnUrl || 'Not configured'}
+              </Text>
+            </Flex>
+          </Stack>
+        </Box>
+
+        <Box
+          style={{
+            borderTop: '1px solid var(--card-border-color)',
+            paddingTop: 16,
+          }}
+        >
+          <Flex align="center" gap={2}>
+            <DatabaseIcon />
+            <Heading size={0}>Storage</Heading>
+          </Flex>
+        </Box>
 
         <StorageBar
           used={stats.disk.used}
@@ -248,6 +288,12 @@ export function MediaBrowserTool() {
   const [showStats, setShowStats] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<MediaFile | null>(null);
+  const [showCleanupMenu, setShowCleanupMenu] = useState(false);
+  const [cleanupDialog, setCleanupDialog] = useState<'unused' | 'all' | null>(null);
+  const [unusedMedia, setUnusedMedia] = useState<UnusedMediaResponse | null>(null);
+  const [loadingUnused, setLoadingUnused] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState({ current: 0, total: 0 });
 
   const fetchMedia = useCallback(async () => {
     setLoading(true);
@@ -303,6 +349,69 @@ export function MediaBrowserTool() {
       setDeleting(false);
     }
   }, [fetchMedia]);
+
+  const fetchUnusedMedia = useCallback(async () => {
+    setLoadingUnused(true);
+    try {
+      const response = await fetch('/api/media/unused');
+      if (!response.ok) {
+        throw new Error('Failed to fetch unused media');
+      }
+      const result = await response.json();
+      setUnusedMedia(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch unused media');
+    } finally {
+      setLoadingUnused(false);
+    }
+  }, []);
+
+  const handleBulkDelete = useCallback(async (files: MediaFile[]) => {
+    setBulkDeleting(true);
+    setBulkDeleteProgress({ current: 0, total: files.length });
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const response = await fetch('/api/media/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: file.type === 'image' ? 'images' : 'videos',
+            filename: file.filename,
+          }),
+        });
+
+        if (!response.ok) {
+          console.warn(`Failed to delete ${file.filename}`);
+        }
+
+        setBulkDeleteProgress({ current: i + 1, total: files.length });
+      }
+
+      // Refresh data
+      setCleanupDialog(null);
+      setUnusedMedia(null);
+      await fetchMedia();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk delete failed');
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteProgress({ current: 0, total: 0 });
+    }
+  }, [fetchMedia]);
+
+  const handleDeleteUnused = useCallback(async () => {
+    if (!unusedMedia) return;
+    const files = [...unusedMedia.unused.images, ...unusedMedia.unused.videos];
+    await handleBulkDelete(files);
+  }, [unusedMedia, handleBulkDelete]);
+
+  const handleDeleteAll = useCallback(async () => {
+    if (!data) return;
+    const files = [...data.images, ...data.videos];
+    await handleBulkDelete(files);
+  }, [data, handleBulkDelete]);
 
   useEffect(() => {
     fetchMedia();
@@ -371,6 +480,58 @@ export function MediaBrowserTool() {
             </Text>
           </Stack>
           <Flex gap={2}>
+            <Box style={{ position: 'relative' }}>
+              <Button
+                icon={ControlsIcon}
+                mode="ghost"
+                text="Cleanup"
+                onClick={() => setShowCleanupMenu(!showCleanupMenu)}
+              />
+              {showCleanupMenu && (
+                <Card
+                  shadow={2}
+                  radius={2}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 4,
+                    zIndex: 100,
+                    minWidth: 220,
+                  }}
+                >
+                  <Stack padding={1}>
+                    <Button
+                      mode="bleed"
+                      justify="flex-start"
+                      text="Delete unused media"
+                      onClick={() => {
+                        setShowCleanupMenu(false);
+                        setCleanupDialog('unused');
+                        fetchUnusedMedia();
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                    <Box paddingY={2} paddingX={3}>
+                      <Box style={{ borderTop: '1px solid var(--card-border-color)' }} />
+                    </Box>
+                    <Card tone="critical" radius={2}>
+                      <Button
+                        mode="bleed"
+                        tone="critical"
+                        justify="flex-start"
+                        text="Delete ALL media"
+                        onClick={() => {
+                          setShowCleanupMenu(false);
+                          setCleanupDialog('all');
+                        }}
+                        style={{ width: '100%' }}
+                      />
+                    </Card>
+                  </Stack>
+                </Card>
+              )}
+            </Box>
             <Button
               icon={DatabaseIcon}
               mode={showStats ? 'default' : 'ghost'}
@@ -420,7 +581,7 @@ export function MediaBrowserTool() {
       <Flex flex={1} overflow="hidden">
         {showStats && stats && (
           <Box style={{ width: 300 }} padding={4} overflow="auto">
-            <StatsPanel stats={stats} />
+            <StatsPanel stats={stats} cdnUrl={stats.config.publicUrl || null} />
           </Box>
         )}
 
@@ -595,6 +756,205 @@ export function MediaBrowserTool() {
                   text={deleting ? 'Deleting...' : 'Delete'}
                   onClick={() => handleDelete(deleteConfirm)}
                   disabled={deleting}
+                />
+              </Flex>
+            </Stack>
+          </Card>
+        </Box>
+      )}
+
+      {/* Cleanup dialog - Delete unused media */}
+      {cleanupDialog === 'unused' && (
+        <Box
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 200000,
+          }}
+          onClick={() => !bulkDeleting && setCleanupDialog(null)}
+        >
+          <Card
+            padding={4}
+            radius={2}
+            shadow={2}
+            style={{ maxWidth: 500 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Stack space={4}>
+              <Heading size={1}>Delete unused media</Heading>
+
+              {loadingUnused ? (
+                <Flex align="center" justify="center" padding={4}>
+                  <Spinner muted />
+                  <Box marginLeft={3}>
+                    <Text muted>Scanning for unused files...</Text>
+                  </Box>
+                </Flex>
+              ) : unusedMedia ? (
+                <>
+                  {unusedMedia.unused.totalCount === 0 ? (
+                    <Card padding={4} tone="positive" radius={2}>
+                      <Text>All media files are in use. Nothing to clean up.</Text>
+                    </Card>
+                  ) : (
+                    <>
+                      <Text>
+                        Found <strong>{unusedMedia.unused.totalCount}</strong> unused files
+                        ({unusedMedia.unused.images.length} images, {unusedMedia.unused.videos.length} videos)
+                        totaling <strong>{formatBytes(unusedMedia.unused.totalSize)}</strong>.
+                      </Text>
+                      <Text size={1} muted>
+                        These files are not referenced by any Sanity documents and can be safely deleted.
+                      </Text>
+
+                      {bulkDeleting && (
+                        <Card padding={3} tone="caution" radius={2}>
+                          <Stack space={2}>
+                            <Text size={1}>
+                              Deleting... {bulkDeleteProgress.current} / {bulkDeleteProgress.total}
+                            </Text>
+                            <Box
+                              style={{
+                                height: 4,
+                                background: 'var(--card-border-color)',
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <Box
+                                style={{
+                                  height: '100%',
+                                  width: `${(bulkDeleteProgress.current / bulkDeleteProgress.total) * 100}%`,
+                                  background: 'var(--card-badge-caution-bg-color)',
+                                  transition: 'width 0.2s ease',
+                                }}
+                              />
+                            </Box>
+                          </Stack>
+                        </Card>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <Text muted>Failed to load unused media information.</Text>
+              )}
+
+              <Flex gap={2} justify="flex-end">
+                <Button
+                  mode="ghost"
+                  text="Cancel"
+                  onClick={() => setCleanupDialog(null)}
+                  disabled={bulkDeleting}
+                />
+                {unusedMedia && unusedMedia.unused.totalCount > 0 && (
+                  <Button
+                    icon={TrashIcon}
+                    tone="critical"
+                    text={bulkDeleting ? 'Deleting...' : `Delete ${unusedMedia.unused.totalCount} files`}
+                    onClick={handleDeleteUnused}
+                    disabled={bulkDeleting}
+                  />
+                )}
+              </Flex>
+            </Stack>
+          </Card>
+        </Box>
+      )}
+
+      {/* Cleanup dialog - Delete ALL media (danger zone) */}
+      {cleanupDialog === 'all' && (
+        <Box
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 200000,
+          }}
+          onClick={() => !bulkDeleting && setCleanupDialog(null)}
+        >
+          <Card
+            padding={4}
+            radius={2}
+            shadow={2}
+            style={{ maxWidth: 500 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Stack space={4}>
+              <Card padding={3} tone="critical" radius={2}>
+                <Flex align="center" gap={2}>
+                  <TrashIcon />
+                  <Heading size={1}>Danger Zone</Heading>
+                </Flex>
+              </Card>
+
+              <Heading size={1}>Delete ALL media?</Heading>
+
+              <Card padding={3} tone="critical" radius={2}>
+                <Stack space={2}>
+                  <Text weight="semibold">
+                    This will permanently delete ALL {data?.total ?? 0} media files:
+                  </Text>
+                  <Text size={1}>
+                    • {data?.images.length ?? 0} images
+                  </Text>
+                  <Text size={1}>
+                    • {data?.videos.length ?? 0} videos
+                  </Text>
+                </Stack>
+              </Card>
+
+              <Text size={1} muted>
+                This action cannot be undone. All references in Sanity documents will become broken.
+              </Text>
+
+              {bulkDeleting && (
+                <Card padding={3} tone="caution" radius={2}>
+                  <Stack space={2}>
+                    <Text size={1}>
+                      Deleting... {bulkDeleteProgress.current} / {bulkDeleteProgress.total}
+                    </Text>
+                    <Box
+                      style={{
+                        height: 4,
+                        background: 'var(--card-border-color)',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Box
+                        style={{
+                          height: '100%',
+                          width: `${(bulkDeleteProgress.current / bulkDeleteProgress.total) * 100}%`,
+                          background: 'var(--card-badge-critical-bg-color)',
+                          transition: 'width 0.2s ease',
+                        }}
+                      />
+                    </Box>
+                  </Stack>
+                </Card>
+              )}
+
+              <Flex gap={2} justify="flex-end">
+                <Button
+                  mode="ghost"
+                  text="Cancel"
+                  onClick={() => setCleanupDialog(null)}
+                  disabled={bulkDeleting}
+                />
+                <Button
+                  icon={TrashIcon}
+                  tone="critical"
+                  text={bulkDeleting ? 'Deleting...' : 'Yes, delete everything'}
+                  onClick={handleDeleteAll}
+                  disabled={bulkDeleting || !data || data.total === 0}
                 />
               </Flex>
             </Stack>
