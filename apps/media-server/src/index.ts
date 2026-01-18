@@ -13,6 +13,9 @@ import { extractImageMetadata, extractVideoMetadata } from './metadata.js';
 
 const app = express();
 
+// Trust proxy (required when behind reverse proxy like Coolify/Traefik)
+app.set('trust proxy', 1);
+
 // Configuration
 const PORT = process.env.PORT || 3001;
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
