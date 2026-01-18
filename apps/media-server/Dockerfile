@@ -8,19 +8,18 @@ RUN apk add --no-cache python3 make g++
 
 # Copy workspace files
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/shared/package.json ./packages/shared/
-COPY apps/media-server/package.json ./apps/media-server/
+COPY packages/shared ./packages/shared
+COPY apps/media-server ./apps/media-server
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source files
-COPY packages/shared ./packages/shared
-COPY apps/media-server ./apps/media-server
+# Build media-server
+WORKDIR /app/apps/media-server
+RUN pnpm build
 
-# Build shared package first, then media-server
-RUN pnpm --filter @feed/shared build 2>/dev/null || true
-RUN pnpm --filter @feed/media-server build
+# Debug: verify build output exists
+RUN ls -la dist/
 
 # Production image
 FROM node:22-alpine
@@ -34,16 +33,15 @@ RUN apk add --no-cache vips-dev ffmpeg
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy workspace files
+# Copy workspace files for pnpm
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/shared/package.json ./packages/shared/
+COPY packages/shared ./packages/shared
 COPY apps/media-server/package.json ./apps/media-server/
 
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built files
-COPY --from=builder /app/packages/shared ./packages/shared
+# Copy built files from builder
 COPY --from=builder /app/apps/media-server/dist ./apps/media-server/dist
 
 # Create uploads directory
