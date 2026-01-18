@@ -19,12 +19,33 @@
  */
 
 import { createClient } from '@sanity/client';
-import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Load environment variables
-dotenv.config({ path: '.env.local' });
+// Load environment variables from .env.local manually
+function loadEnvFile(filePath: string) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    }
+  } catch {
+    // File doesn't exist, skip
+  }
+}
+
+// Try loading from multiple locations
+loadEnvFile('.env.local');
+loadEnvFile('apps/web/.env.local');
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
