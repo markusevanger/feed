@@ -52,6 +52,7 @@ export const postType = defineType({
       return {
         title,
         media: imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageUrl}
             alt=""

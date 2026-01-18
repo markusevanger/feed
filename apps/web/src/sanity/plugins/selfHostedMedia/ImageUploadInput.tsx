@@ -3,7 +3,7 @@
 import React, { useCallback, useState, useId } from 'react';
 import { Box, Button, Card, Flex, Spinner, Stack, Text } from '@sanity/ui';
 import { ImageIcon, TrashIcon, UploadIcon } from '@sanity/icons';
-import { set, unset, useFormValue } from 'sanity';
+import { set, unset } from 'sanity';
 import type { ObjectInputProps } from 'sanity';
 import { uploadFile, deleteFile } from './api';
 import type { SelfHostedImage } from './types';
@@ -53,7 +53,7 @@ export default function ImageUploadInput(props: ObjectInputProps) {
     } finally {
       setUploading(false);
     }
-  }, [onChange]);
+  }, [onChange, value]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,6 +117,7 @@ export default function ImageUploadInput(props: ObjectInputProps) {
               background: '#1a1a1a',
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={value.url}
               alt={value.alt || ''}

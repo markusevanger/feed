@@ -49,7 +49,7 @@ export default function VideoUploadInput(props: ObjectInputProps) {
     } finally {
       setUploading(false);
     }
-  }, [onChange]);
+  }, [onChange, value]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

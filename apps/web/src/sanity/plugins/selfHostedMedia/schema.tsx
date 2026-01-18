@@ -120,6 +120,7 @@ export const selfHostedImageType = defineType({
       return {
         title: `Image (${width}x${height})`,
         media: url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
             alt=""
