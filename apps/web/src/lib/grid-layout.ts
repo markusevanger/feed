@@ -27,83 +27,50 @@ function getNaturalSpan(media: SelfHostedMedia): 1 | 2 {
 
 /**
  * Pack media items into rows that fill exactly 3 columns each.
- * Uses a greedy algorithm that tries to fill each row optimally.
+ * Respects the order from Sanity - items are placed sequentially.
  *
  * Strategy:
- * - Separate items by their natural span (1 or 2 columns)
- * - Build rows by combining items to reach exactly 3 columns
- * - Possible combinations: [2,1], [1,2], [1,1,1], or [3] (single item stretched)
- * - When we can't make a perfect 3, we may stretch a 2-span to fill 3
+ * - Process items in order, filling rows as we go
+ * - Each item gets its natural span (horizontal=2, vertical=1)
+ * - When a row reaches 3 columns, start a new row
+ * - If an item would overflow, start a new row
  */
 export function packIntoRows(items: MediaItem[], targetColumns = 3): GridRow[] {
   if (items.length === 0) return [];
 
-  // Calculate natural spans for all items
-  const itemsWithSpans: GridItem[] = items.map((media) => ({
-    media,
-    colSpan: getNaturalSpan(media),
-  }));
-
   const rows: GridRow[] = [];
-  let remaining = [...itemsWithSpans];
+  let currentRow: GridItem[] = [];
+  let currentSpan = 0;
 
-  while (remaining.length > 0) {
-    const row = buildRow(remaining, targetColumns);
-    rows.push(row);
+  for (const media of items) {
+    const span = getNaturalSpan(media);
 
-    // Remove used items from remaining
-    const usedKeys = new Set(row.items.map((i) => i.media._key));
-    remaining = remaining.filter((i) => !usedKeys.has(i.media._key));
+    // If adding this item would overflow the row, start a new row
+    if (currentSpan + span > targetColumns) {
+      if (currentRow.length > 0) {
+        rows.push({ items: currentRow, totalSpan: currentSpan });
+      }
+      currentRow = [];
+      currentSpan = 0;
+    }
+
+    currentRow.push({ media, colSpan: span });
+    currentSpan += span;
+
+    // If row is exactly full, start a new row
+    if (currentSpan === targetColumns) {
+      rows.push({ items: currentRow, totalSpan: currentSpan });
+      currentRow = [];
+      currentSpan = 0;
+    }
+  }
+
+  // Don't forget the last partial row
+  if (currentRow.length > 0) {
+    rows.push({ items: currentRow, totalSpan: currentSpan });
   }
 
   return rows;
-}
-
-/**
- * Build a single row from available items, trying to fill exactly targetColumns
- */
-function buildRow(available: GridItem[], targetColumns: number): GridRow {
-  // Try to find the best combination that fills the row
-  const span1Items = available.filter((i) => i.colSpan === 1);
-  const span2Items = available.filter((i) => i.colSpan === 2);
-
-  // Priority 1: [2, 1] - one horizontal + one vertical (most common and looks good)
-  if (span2Items.length >= 1 && span1Items.length >= 1) {
-    return {
-      items: [span2Items[0], span1Items[0]],
-      totalSpan: 3,
-    };
-  }
-
-  // Priority 2: [1, 1, 1] - three verticals
-  if (span1Items.length >= 3) {
-    return {
-      items: [span1Items[0], span1Items[1], span1Items[2]],
-      totalSpan: 3,
-    };
-  }
-
-  // Priority 3: [2] stretched to 3 - single horizontal fills the row
-  if (span2Items.length >= 1) {
-    return {
-      items: [{ ...span2Items[0], colSpan: 3 as unknown as 2 }], // Stretch to 3
-      totalSpan: 3,
-    };
-  }
-
-  // Priority 4: [1, 1] - two verticals (leaves 1 column empty, but acceptable for last row)
-  if (span1Items.length >= 2) {
-    return {
-      items: [span1Items[0], span1Items[1]],
-      totalSpan: 2,
-    };
-  }
-
-  // Fallback: single item (last row edge case)
-  return {
-    items: [available[0]],
-    totalSpan: available[0].colSpan,
-  };
 }
 
 /**
