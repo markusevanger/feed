@@ -1,22 +1,51 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useWindupString } from "windups";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface IntroAnimationProps {
   children: React.ReactNode;
 }
 
 export default function IntroAnimation({ children }: IntroAnimationProps) {
-  const [phase, setPhase] = useState<"mounting" | "windup" | "pause" | "shrinking" | "done">("mounting");
-  const [windupText, { isFinished }] = useWindupString("feed");
+  const [phase, setPhase] = useState<"mounting" | "cursor" | "typing" | "pause" | "shrinking" | "done">("mounting");
+  const [displayText, setDisplayText] = useState("");
   const [targetPosition, setTargetPosition] = useState<{ top: number; left: number } | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const fullText = "feed";
+
+  // Typing animation
+  const typeText = useCallback(() => {
+    const charDelay = 100; // 100ms per character - natural typing speed
+    let currentIndex = 0;
+
+    const typeNextChar = () => {
+      if (currentIndex < fullText.length) {
+        setDisplayText(fullText.slice(0, currentIndex + 1));
+        currentIndex++;
+        setTimeout(typeNextChar, charDelay);
+      } else {
+        setPhase("pause");
+      }
+    };
+
+    typeNextChar();
+  }, []);
 
   // Start animation after mount to avoid hydration issues
   useEffect(() => {
-    setPhase("windup");
+    setPhase("cursor");
   }, []);
+
+  // Cursor phase: wait 1 second showing only "_"
+  useEffect(() => {
+    if (phase === "cursor") {
+      const timer = setTimeout(() => {
+        setPhase("typing");
+        typeText();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, typeText]);
 
   // Measure the actual header position from the rendered (but invisible) content
   useEffect(() => {
@@ -29,20 +58,12 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
     }
   }, [phase]);
 
-  useEffect(() => {
-    if (isFinished && phase === "windup") {
-      const pauseTimer = setTimeout(() => {
-        setPhase("pause");
-      }, 100);
-      return () => clearTimeout(pauseTimer);
-    }
-  }, [isFinished, phase]);
-
+  // Pause phase: wait before shrinking
   useEffect(() => {
     if (phase === "pause") {
       const shrinkTimer = setTimeout(() => {
         setPhase("shrinking");
-      }, 1000);
+      }, 500);
       return () => clearTimeout(shrinkTimer);
     }
   }, [phase]);
@@ -56,20 +77,17 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
     }
   }, [phase]);
 
-  // During SSR and initial mount, just render children normally
-  if (phase === "mounting") {
-    return <>{children}</>;
-  }
-
   const isDone = phase === "done";
   const isShrinking = phase === "shrinking";
+  const showOverlay = phase !== "done";
+  const showTitle = phase !== "mounting" && phase !== "done";
 
   return (
     <>
-      {/* Black overlay - fades out during shrink */}
-      {!isDone && (
+      {/* Background overlay - shown during mounting to prevent flash, fades out during shrink */}
+      {showOverlay && (
         <div
-          className={`fixed inset-0 z-40 bg-black transition-opacity duration-1000 ${
+          className={`fixed inset-0 z-40 bg-background transition-opacity duration-1000 ${
             isShrinking ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
           style={{ transitionDelay: isShrinking ? "0.5s" : "0s" }}
@@ -77,9 +95,9 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
       )}
 
       {/* The animating title - fixed position that transforms to header location */}
-      {!isDone && (
+      {showTitle && (
         <h1
-          className="fixed z-50 font-array text-white transition-all ease-out"
+          className="fixed z-50 font-array text-foreground transition-all ease-out"
           style={{
             top: isShrinking && targetPosition ? targetPosition.top : "50%",
             left: isShrinking && targetPosition ? targetPosition.left : "50%",
@@ -91,7 +109,7 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
             transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          {windupText}<span className="animate-pulse">_</span>
+          {displayText}<span className="animate-pulse">_</span>
         </h1>
       )}
 

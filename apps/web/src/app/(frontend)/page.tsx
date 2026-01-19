@@ -44,37 +44,23 @@ const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
   }
 }`;
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ post?: string }>;
-}) {
-  const { post: activeSlug } = await searchParams;
+export default async function Page() {
   const posts = await client.fetch<PostWithMedia[]>(POST_QUERY);
-
-  const filteredPosts = activeSlug
-    ? posts.filter((post) => post.slug?.current === activeSlug)
-    : posts;
 
   return (
     <IntroAnimation>
-      <section className="container mx-auto px-2 my-10 min-h-screen">
-        <div className="flex flex-col lg:flex-row w-full items-center justify-between mb-10">
+      <section className="relative z-0 container mx-auto px-4 sm:px-6 my-10 min-h-screen">
+        <div className="flex w-full items-center justify-between mb-10">
           <h1 className="flex font-array text-2xl"><Windup text="feed" /><span className="animate-pulse">_</span></h1>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm text-muted-foreground">under construction & work in progress</h2>
-            <ModeToggle />
-          </div>
+          <ModeToggle />
         </div>
 
-        <div className="mb-6">
-          <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} />
-        </div>
+        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} />
 
         <div className="flex flex-col gap-8 lg:px-40">
-          {filteredPosts && filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => (
-              <div key={post._id} className="">
+          {posts && posts.length > 0 ? (
+            posts.map((post) => (
+              <div key={post._id} id={`post-${post.slug?.current}`} className="scroll-mt-4">
                 <div className="flex justify-between border-b border-border mb-2 pb-1 font-array">
                   <h2 className="font-mono text-sm">{post.title}</h2>
                   <div className="flex items-center gap-1">
@@ -86,7 +72,7 @@ export default async function Page({
                     <p className="text-xs text-accent-foreground font-mono ">posted @ {new Date(post._createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 p-8">
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 py-4 lg:p-8">
                   {post.media && post.media.length > 0 ? (
                     packIntoRows(post.media).flatMap((row) =>
                       row.items.map((item) => (
@@ -110,7 +96,7 @@ export default async function Page({
           )}
         </div>
       </section>
-      <footer className="flex justify-center py-10 items-center ">
+      <footer className="flex justify-center py-10 pb-20 lg:pb-10 items-center">
         <div className="text-sm px-4 py-1 bg-muted rounded-full opacity-60 hover:opacity-100 transition-opacity">
           <p>
             utvikling og reising av <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>

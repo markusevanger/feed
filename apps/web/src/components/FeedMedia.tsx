@@ -30,22 +30,27 @@ const getSpanClass = (span: number) => {
   }
 };
 
-// Row height based on portrait phone video (9:16 aspect ratio)
-// This makes 1-col portrait items show properly, and 2-col items match the height
-const ROW_HEIGHT = "h-[28rem] lg:h-[32rem]";
+// Desktop: Fixed row height for grid alignment
+// Mobile: Use aspect ratio for natural sizing
+const ROW_HEIGHT_DESKTOP = "lg:h-[32rem]";
 
-export function MediaWrapper({ children, createdAt, metadata, className }: MediaWrapperProps) {
+export function MediaWrapper({ children, createdAt, metadata, className, aspectRatio }: MediaWrapperProps & { aspectRatio?: number }) {
+  // Mobile: use aspect ratio for natural height, Desktop: fixed height for grid
+  const mobileAspectClass = aspectRatio
+    ? aspectRatio > 1
+      ? "aspect-video" // horizontal: 16:9
+      : "aspect-[3/4]" // vertical: 3:4 (shorter than 9:16 to avoid too tall)
+    : "aspect-video";
+
   return (
-    <div className={cn(`relative w-full overflow-hidden rounded-lg`, ROW_HEIGHT, className)}>
+    <div className={cn(`relative w-full overflow-hidden rounded-lg`, mobileAspectClass, ROW_HEIGHT_DESKTOP, className)}>
       {children}
-      <div className="absolute bottom-2 left-4 z-10">
-        {metadata && metadata.mediaType === 'image' && (
-          <MetadataDialog
-            media={metadata}
-            createdAt={createdAt}
-          />
-        )}
-      </div>
+      {metadata && metadata.mediaType === 'image' && (
+        <MetadataDialog
+          media={metadata}
+          createdAt={createdAt}
+        />
+      )}
     </div>
   );
 }
@@ -78,6 +83,7 @@ export default function FeedMedia({ media, colSpan }: FeedMediaProps) {
         createdAt={createdAt}
         metadata={media}
         className={spanClass}
+        aspectRatio={media.aspectRatio || 1}
       >
         <MediaLightbox
           type="image"
@@ -114,10 +120,14 @@ function FeedVideo({ media, colSpan }: FeedMediaProps) {
     ? getSpanClass(colSpan)
     : horizontal ? "lg:col-span-2" : "lg:col-span-1";
 
+  // Mobile: use aspect ratio for natural height
+  const mobileAspectClass = horizontal ? "aspect-video" : "aspect-[3/4]";
+
   return (
     <div className={cn(
       "relative w-full overflow-hidden rounded-lg",
-      ROW_HEIGHT,
+      mobileAspectClass,
+      ROW_HEIGHT_DESKTOP,
       spanClass,
     )}>
       <MediaLightbox

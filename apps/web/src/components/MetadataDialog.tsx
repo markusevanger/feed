@@ -1,7 +1,9 @@
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogTrigger, DialogFooter } from "./ui/dialog";
-import { Camera, Clock, InfoIcon, MapPin } from "lucide-react";
+"use client"
+
+import { useState } from "react";
+import { Camera, ChevronUp, Clock, MapPin, X } from "lucide-react";
 import { SelfHostedMedia } from "./FeedMedia";
-import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 interface MetadataDialogProps {
   media: SelfHostedMedia;
@@ -9,43 +11,55 @@ interface MetadataDialogProps {
 }
 
 export default function MetadataDialog({ media, createdAt }: MetadataDialogProps) {
+  const [expanded, setExpanded] = useState(false);
   const { exif, location } = media;
 
   // Don't render if no date available to avoid hydration mismatch with new Date()
   if (!createdAt) return null;
 
   return (
-    <Dialog>
-      <DialogTrigger>
-        <Badge variant="secondary" className="font-mono opacity-75 hover:opacity-100 cursor-pointer transition-opacity">
+    <div
+      className={cn(
+        "absolute z-10 font-mono text-xs cursor-pointer transition-all duration-200 ease-out",
+        "bg-secondary text-secondary-foreground",
+        expanded
+          ? "bottom-2 left-4 right-4 px-4 py-3 rounded-lg"
+          : "bottom-2 left-4 px-2.5 py-0.5 rounded-md opacity-75 hover:opacity-100"
+      )}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center">
+          <Clock size={12} className="mr-1.5 shrink-0" />
           {createdAt.toLocaleDateString("no")} at {createdAt.toLocaleTimeString('no')}
-          <InfoIcon size={16} className="ml-2" />
-        </Badge>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Metadata</DialogTitle>
-        </DialogHeader>
-        <DialogDescription>
-          <li className="list-none">
-            <Clock size={16} className="mr-2 inline-block" />
-            created: {createdAt.toLocaleDateString("no")} at {createdAt.toLocaleTimeString('no')}
-          </li>
-          <li className="list-none">
-            <MapPin size={16} className="mr-2 inline-block" />
-            {location ? `lat: ${location.lat}, lon: ${location.lon}` : 'no location'}
-          </li>
-          <li className="list-none">
-            <Camera size={16} className="mr-2 inline-block" />
-            {exif?.lensMake && exif?.lensModel ? `${exif.lensMake} ${exif.lensModel}` : 'no camera info'}
-          </li>
-        </DialogDescription>
-        <DialogFooter>
-          <p className="text-xs text-muted-foreground">
-            Metadata may be inaccurate due to camera settings, wrong date/time, wrong location, etc.
-          </p>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {!expanded && <ChevronUp size={14} className="ml-1.5" />}
+        </span>
+        {expanded && (
+          <button
+            className="p-0.5 rounded-full hover:bg-foreground/10 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(false);
+            }}
+            aria-label="Close metadata"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="mt-2 space-y-1 text-secondary-foreground/90">
+          <div className="flex items-center">
+            <MapPin size={12} className="mr-1.5 shrink-0" />
+            <span>{location ? `${location.lat}, ${location.lon}` : 'No location'}</span>
+          </div>
+          <div className="flex items-center">
+            <Camera size={12} className="mr-1.5 shrink-0" />
+            <span>{exif?.lensMake && exif?.lensModel ? `${exif.lensMake} ${exif.lensModel}` : 'No camera info'}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
