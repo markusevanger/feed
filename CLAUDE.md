@@ -65,10 +65,17 @@ pnpm --filter @feed/web sanity:typegen
     /(frontend)/page.tsx          # Main feed page
     /api                          # API routes for media operations
   /components
-    FeedMedia.tsx                 # Media wrapper for images/videos with metadata
-    MetadataDialog.tsx            # Dialog showing EXIF data (location, camera)
-    Video.tsx                     # Video player with orientation support
+    FeedMedia.tsx                 # Media wrapper for images/videos with deloading
+    FeedContainer.tsx             # Client wrapper with MediaObserverProvider
+    Video.tsx                     # Video player with visibility-based pause/deload
+    MediaLightbox.tsx             # Fullscreen media viewer
     /ui/*.tsx                     # shadcn/ui components
+  /contexts
+    MediaObserverContext.tsx      # Shared IntersectionObserver for media visibility
+  /hooks
+    useMediaVisibility.ts         # Hook for lazy load/deload based on viewport
+  /lib
+    grid-layout.ts                # Packs media into 3-column grid rows
   /sanity
     /schemaTypes                  # Sanity document/field schemas
     /plugins
@@ -93,21 +100,23 @@ docker-compose.yml      # Local development
 **Post** document contains:
 - `title` (string, required)
 - `slug` (slug, required)
-- `images` (array of `selfHostedImage`, min 1 required)
-- `videos` (array of `selfHostedVideo`, optional)
+- `media` (array of `selfHostedMedia`, mixed images and videos)
 
-**selfHostedImage** stores:
+**selfHostedMedia** (discriminated union via `mediaType`):
+- `mediaType` - "image" | "video"
 - `url` - Direct URL to self-hosted file
+- `lqip` - Base64 blur placeholder (for both images and videos)
+
+Image-specific fields:
 - `width`, `height`, `aspectRatio` - Dimensions
-- `lqip` - Base64 blur placeholder
 - `alt` - Accessibility text
 - `exif` - { dateTime, lensMake, lensModel }
 - `location` - { lat, lon }
 
-**selfHostedVideo** stores:
-- `url` - Direct URL to self-hosted file
+Video-specific fields:
 - `mimeType` - Video MIME type
 - `orientation` - "horizontal" | "vertical"
+- `thumbnailUrl` - Auto-generated thumbnail
 
 ### Self-Hosted Media Flow
 
@@ -122,8 +131,18 @@ docker-compose.yml      # Local development
 - Path alias: `@/*` maps to `./src/*` (in apps/web)
 - Shared types: `@feed/shared` for cross-package types
 - Tailwind uses OKLch color model with CSS variables
-- Grid layout: horizontal images span 2 columns, vertical span 1
+- Grid layout: horizontal media spans 2 columns, vertical spans 1 (see `grid-layout.ts`)
 - Types generated via `sanity typegen` in `apps/web/sanity.types.ts`
+
+### Media Deloading System
+
+The feed implements memory optimization for mobile devices via `useMediaVisibility` hook:
+
+- **IntersectionObserver-based**: Single shared observer via `MediaObserverContext`
+- **LQIP placeholders**: Always visible as blurred background, used as "unloaded" state
+- **Images**: `<Image>` component unmounted when far off-screen, remounted when approaching
+- **Videos**: Paused when leaving viewport, source cleared when far off-screen
+- **Mobile vs Desktop thresholds**: Mobile uses 1 viewport preload / 1.5 viewport deload; Desktop uses 2 / 3 viewports
 
 ### Environment Variables
 
