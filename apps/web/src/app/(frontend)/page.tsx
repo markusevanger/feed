@@ -8,7 +8,42 @@ import { packIntoRows } from "@/lib/grid-layout";
 import { client } from "@/sanity/lib/client";
 import { isSameDay } from "date-fns";
 import Link from "next/link";
+import Script from "next/script";
+import type { Metadata } from "next";
 import type { Post, SelfHostedMedia } from "../../../sanity.types";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://feed.markusevanger.no";
+
+export const metadata: Metadata = {
+  title: "Feed | Markus Evanger",
+  description: "A curated feed of images and videos by Markus Evanger",
+  openGraph: {
+    title: "Feed | Markus Evanger",
+    description: "A curated feed of images and videos by Markus Evanger",
+    url: SITE_URL,
+    siteName: "Feed",
+    type: "website",
+    locale: "no_NO",
+    images: [
+      {
+        url: `${SITE_URL}/feed-social-media-thumbnails.png`,
+        width: 1637,
+        height: 834,
+        alt: "Feed - A curated feed of images and videos by Markus Evanger",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Feed | Markus Evanger",
+    description: "A curated feed of images and videos by Markus Evanger",
+    images: [`${SITE_URL}/feed-social-media-thumbnails.png`],
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
+  authors: [{ name: "Markus Evanger", url: "https://markusevanger.no" }],
+};
 
 // Tag for on-demand revalidation via webhook
 export const revalidate = false; // Only revalidate when triggered
@@ -18,6 +53,86 @@ type PostMediaItem = { _key: string } & SelfHostedMedia;
 
 interface PostWithMedia extends Omit<Post, 'media'> {
   media: PostMediaItem[] | null;
+}
+
+function generateJsonLd(posts: PostWithMedia[]) {
+  const websiteSchema = {
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    url: SITE_URL,
+    name: "Feed",
+    description: "A curated feed of images and videos by Markus Evanger",
+    publisher: {
+      "@id": `${SITE_URL}/#person`,
+    },
+  };
+
+  const personSchema = {
+    "@type": "Person",
+    "@id": `${SITE_URL}/#person`,
+    name: "Markus Evanger",
+    url: "https://markusevanger.no",
+  };
+
+  const collectionSchema = {
+    "@type": "CollectionPage",
+    "@id": `${SITE_URL}/#collection`,
+    url: SITE_URL,
+    name: "Feed",
+    description: "A curated feed of images and videos",
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: posts.length,
+      itemListElement: posts.map((post, index) => {
+        const postUrl = `${SITE_URL}/#post-${post.slug?.current}`;
+        const images = post.media?.filter((m) => m.mediaType === "image") || [];
+        const firstImage = images[0];
+
+        return {
+          "@type": "ListItem",
+          position: index + 1,
+          item: {
+            "@type": "BlogPosting",
+            "@id": postUrl,
+            headline: post.title,
+            url: postUrl,
+            datePublished: post._createdAt,
+            dateModified: post._updatedAt,
+            author: { "@id": `${SITE_URL}/#person` },
+            publisher: { "@id": `${SITE_URL}/#person` },
+            isPartOf: { "@id": `${SITE_URL}/#website` },
+            ...(firstImage && {
+              image: images.map((img) => ({
+                "@type": "ImageObject",
+                url: img.url,
+                width: img.width,
+                height: img.height,
+                ...(img.alt && { caption: img.alt }),
+                ...(img.exif?.dateTime && { dateCreated: img.exif.dateTime }),
+                ...(img.location && {
+                  contentLocation: {
+                    "@type": "Place",
+                    geo: {
+                      "@type": "GeoCoordinates",
+                      latitude: img.location.lat,
+                      longitude: img.location.lon,
+                    },
+                  },
+                }),
+              })),
+              thumbnailUrl: firstImage.url,
+            }),
+          },
+        };
+      }),
+    },
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [websiteSchema, personSchema, collectionSchema],
+  };
 }
 
 const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
@@ -47,9 +162,17 @@ const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
 
 export default async function Page() {
   const posts = await client.fetch<PostWithMedia[]>(POST_QUERY);
+  const jsonLd = generateJsonLd(posts);
 
   return (
-    <IntroAnimation>
+    <>
+      <Script
+        id="json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        strategy="afterInteractive"
+      />
+      <IntroAnimation>
       <Header />
       <section className="relative z-0 container mx-auto px-4 sm:px-6 mt-20 mb-10 min-h-screen">
 
@@ -106,5 +229,6 @@ export default async function Page() {
         </div>
       </footer>
     </IntroAnimation>
+    </>
   );
 }
