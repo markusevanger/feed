@@ -1,9 +1,8 @@
 import FeedMedia from "@/components/FeedMedia";
 import { FeedContainer } from "@/components/FeedContainer";
 import IntroAnimation from "@/components/IntroAnimation";
+import MobiusStripLogo from "@/components/MobiusStripLogo";
 import PostFilterBadges from "@/components/PostFilterBadges";
-import { ModeToggle } from "@/components/ui/ModeToggle";
-import Windup from "@/components/Windup";
 import { packIntoRows } from "@/lib/grid-layout";
 import { client } from "@/sanity/lib/client";
 import { isSameDay } from "date-fns";
@@ -52,11 +51,10 @@ export default async function Page() {
     <IntroAnimation>
       <section className="relative z-0 container mx-auto px-4 sm:px-6 my-10 min-h-screen">
         <div className="flex w-full items-center justify-between mb-10">
-          <h1 className="flex font-array text-2xl"><Windup text="feed" /><span className="animate-pulse">_</span></h1>
-          <ModeToggle />
+          <h1 className="flex font-array text-2xl">feed<span className="animate-pulse">_</span></h1>
         </div>
 
-        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} />
+        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} position="fixed" />
 
         <FeedContainer>
           <div className="flex flex-col gap-8 lg:px-40">
@@ -99,7 +97,9 @@ export default async function Page() {
           </div>
         </FeedContainer>
       </section>
-      <footer className="flex justify-center py-10 pb-20 lg:pb-10 items-center">
+      <footer className="flex flex-col items-center gap-4 py-10 pb-10">
+        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} position="footer" />
+        <MobiusStripLogo className="h-16 w-auto" />
         <div className="text-sm px-4 py-1 bg-muted rounded-full opacity-60 hover:opacity-100 transition-opacity">
           <p>
             utvikling og reising av <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>

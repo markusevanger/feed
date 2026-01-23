@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Home, Menu, X } from "lucide-react";
+import { ArrowUp, Home, Menu, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 interface Post {
@@ -12,12 +12,14 @@ interface Post {
 
 interface PostFilterBadgesProps {
   posts: Post[];
+  position: "fixed" | "footer";
 }
 
-export default function PostFilterBadges({ posts }: PostFilterBadgesProps) {
+export default function PostFilterBadges({ posts, position }: PostFilterBadgesProps) {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +27,12 @@ export default function PostFilterBadges({ posts }: PostFilterBadgesProps) {
 
       // Hide navbar when at top
       setIsVisible(window.scrollY > 200);
+
+      // Check if scrolled to bottom (within 100px threshold)
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+      const scrollTop = window.scrollY;
+      setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 100);
 
       for (const post of posts) {
         if (!post.slug) continue;
@@ -62,6 +70,26 @@ export default function PostFilterBadges({ posts }: PostFilterBadgesProps) {
     }
   }, []);
 
+  // Footer position: render the "Go to top" button when at bottom
+  if (position === "footer") {
+    return (
+      <div className={`lg:hidden transition-opacity duration-300 ${isAtBottom ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        <div className="flex gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-2 shadow-lg">
+          <Badge
+            variant="default"
+            className="rounded-full px-3 py-1 text-xs shrink-0 cursor-pointer"
+            onClick={() => scrollToPost(null)}
+          >
+            <span className="flex items-center gap-1">
+              <ArrowUp className="size-3" /> Go to top
+            </span>
+          </Badge>
+        </div>
+      </div>
+    );
+  }
+
+  // Fixed position: render desktop sidebar and mobile floating bar
   return (
     <>
       {/* Desktop: fixed on left side */}
@@ -87,12 +115,12 @@ export default function PostFilterBadges({ posts }: PostFilterBadgesProps) {
 
       {/* Mobile: backdrop when menu open */}
       <div
-        className={`fixed inset-0 z-40 lg:hidden bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen && isVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-40 lg:hidden bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen && isVisible && !isAtBottom ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       {/* Mobile: floating bottom bar with current post + menu */}
-      <div className={`fixed right-4 z-50 lg:hidden transition-all duration-300 ${isVisible ? "bottom-4" : "-bottom-16 pointer-events-none"}`}>
+      <div className={`fixed right-4 bottom-4 z-50 lg:hidden transition-all duration-300 ${isVisible && !isAtBottom ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <div className="flex gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-2 shadow-lg">
           <Badge
             variant="default"
@@ -111,7 +139,7 @@ export default function PostFilterBadges({ posts }: PostFilterBadgesProps) {
       </div>
 
       {/* Mobile: expanded menu */}
-      <div className={`fixed right-4 z-40 lg:hidden transition-all duration-300 ${isVisible && mobileMenuOpen ? "bottom-20 opacity-100" : "bottom-16 opacity-0 pointer-events-none"}`}>
+      <div className={`fixed right-4 z-40 lg:hidden transition-all duration-300 ${isVisible && mobileMenuOpen && !isAtBottom ? "bottom-20 opacity-100" : "bottom-16 opacity-0 pointer-events-none"}`}>
         <div className="flex flex-col items-end gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-2xl px-3 py-3 shadow-lg">
           <Badge
             variant={activeSlug === null ? "default" : "outline"}

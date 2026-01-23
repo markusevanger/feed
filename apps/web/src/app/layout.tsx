@@ -3,7 +3,6 @@
 
 
 import localFont from 'next/font/local'
-import { ThemeProvider } from "@/components/theme-provider";
 import { BreakpointIndicator } from "@/components/BreakpointIndicator";
 import "./globals.css";
 
@@ -36,21 +35,11 @@ export default function RootLayout({
 
 
   return (
-    <html lang="en" suppressHydrationWarning>
-
-      <body
-        className={`${arrayFont.variable} antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
-          {children}
-          <BreakpointIndicator />
-        </ThemeProvider>
+    <html lang="en" className="dark">
+      <body className={`${arrayFont.variable} antialiased`}>
+        {children}
+        <BreakpointIndicator />
       </body>
-
-    </html >
+    </html>
   );
 }

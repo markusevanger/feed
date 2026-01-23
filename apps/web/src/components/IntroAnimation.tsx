@@ -23,7 +23,9 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
 
     const typeNextChar = () => {
       if (currentIndex < fullText.length) {
-        setDisplayText(fullText.slice(0, currentIndex + 1));
+        const newText = fullText.slice(0, currentIndex + 1);
+        setDisplayText(newText);
+        document.title = newText + "_";
         currentIndex++;
         setTimeout(typeNextChar, charDelay);
       } else {
@@ -38,6 +40,7 @@ export default function IntroAnimation({ children }: IntroAnimationProps) {
   useEffect(() => {
     // Scroll to top on mount to ensure animation starts from correct position
     window.scrollTo(0, 0);
+    document.title = "_";
     setPhase("cursor");
   }, []);
 

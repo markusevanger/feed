@@ -15,6 +15,7 @@
     "migrate:self-hosted": "pnpm --filter @feed/web exec tsx ../../migrations/migrate-to-self-hosted.ts"
   },
   "devDependencies": {
+    "sharp": "^0.33.5",
     "turbo": "^2.3.0",
     "typescript": "^5"
   },
