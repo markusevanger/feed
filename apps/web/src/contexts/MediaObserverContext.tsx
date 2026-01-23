@@ -24,6 +24,17 @@ const THRESHOLDS = {
   },
 };
 
+// Polyfill requestIdleCallback for Safari
+const requestIdleCallbackPolyfill =
+  typeof window !== 'undefined' && 'requestIdleCallback' in window
+    ? window.requestIdleCallback
+    : (cb: IdleRequestCallback) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 1);
+
+const cancelIdleCallbackPolyfill =
+  typeof window !== 'undefined' && 'cancelIdleCallback' in window
+    ? window.cancelIdleCallback
+    : clearTimeout;
+
 interface MediaObserverProviderProps {
   children: ReactNode;
 }
@@ -56,6 +67,34 @@ export function MediaObserverProvider({ children }: MediaObserverProviderProps) 
     };
   }, []);
 
+  // Pending updates to batch process during idle time
+  const pendingUpdatesRef = useRef<Map<Element, { entry: IntersectionObserverEntry; zone: 'visible' | 'nearby' }>>(new Map());
+  const idleCallbackRef = useRef<number | ReturnType<typeof setTimeout>>(0);
+
+  // Process batched updates during idle time to avoid scroll jank
+  const flushPendingUpdates = useCallback(() => {
+    const updates = pendingUpdatesRef.current;
+    if (updates.size === 0) return;
+
+    // Process all pending updates in a single batch
+    updates.forEach(({ entry, zone }, element) => {
+      const callback = callbacksRef.current.get(element);
+      if (callback) {
+        callback(entry, zone);
+      }
+    });
+    updates.clear();
+  }, []);
+
+  const scheduleFlush = useCallback(() => {
+    if (idleCallbackRef.current) {
+      cancelIdleCallbackPolyfill(idleCallbackRef.current as number);
+    }
+    // Use requestIdleCallback to process updates when browser is idle
+    // With a timeout to ensure updates happen within reasonable time
+    idleCallbackRef.current = requestIdleCallbackPolyfill(flushPendingUpdates, { timeout: 100 });
+  }, [flushPendingUpdates]);
+
   // Create observers when mobile state changes
   useEffect(() => {
     const threshold = isMobile ? THRESHOLDS.mobile : THRESHOLDS.desktop;
@@ -64,11 +103,17 @@ export function MediaObserverProvider({ children }: MediaObserverProviderProps) 
     visibleObserverRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const callback = callbacksRef.current.get(entry.target);
-          if (callback) {
-            callback(entry, 'visible');
+          // Batch the update instead of processing immediately
+          const existing = pendingUpdatesRef.current.get(entry.target);
+          // Visible zone takes priority, so only update if not already set to visible
+          if (!existing || existing.zone !== 'visible') {
+            pendingUpdatesRef.current.set(entry.target, { entry, zone: 'visible' });
+          } else {
+            // Update the entry but keep the zone
+            pendingUpdatesRef.current.set(entry.target, { entry, zone: 'visible' });
           }
         });
+        scheduleFlush();
       },
       {
         rootMargin: '0px',
@@ -80,11 +125,13 @@ export function MediaObserverProvider({ children }: MediaObserverProviderProps) 
     nearbyObserverRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const callback = callbacksRef.current.get(entry.target);
-          if (callback) {
-            callback(entry, 'nearby');
+          // Only set nearby if there's no pending visible update
+          const existing = pendingUpdatesRef.current.get(entry.target);
+          if (!existing || existing.zone !== 'visible') {
+            pendingUpdatesRef.current.set(entry.target, { entry, zone: 'nearby' });
           }
         });
+        scheduleFlush();
       },
       {
         rootMargin: `${threshold.nearby} 0px`,
@@ -101,8 +148,11 @@ export function MediaObserverProvider({ children }: MediaObserverProviderProps) 
     return () => {
       visibleObserverRef.current?.disconnect();
       nearbyObserverRef.current?.disconnect();
+      if (idleCallbackRef.current) {
+        cancelIdleCallbackPolyfill(idleCallbackRef.current as number);
+      }
     };
-  }, [isMobile]);
+  }, [isMobile, scheduleFlush]);
 
   const observe = useCallback((element: Element, callback: IntersectionCallback) => {
     callbacksRef.current.set(element, callback);

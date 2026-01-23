@@ -1,5 +1,6 @@
 import FeedMedia from "@/components/FeedMedia";
 import { FeedContainer } from "@/components/FeedContainer";
+import Header from "@/components/Header";
 import IntroAnimation from "@/components/IntroAnimation";
 import MobiusStripLogo from "@/components/MobiusStripLogo";
 import PostFilterBadges from "@/components/PostFilterBadges";
@@ -49,10 +50,8 @@ export default async function Page() {
 
   return (
     <IntroAnimation>
-      <section className="relative z-0 container mx-auto px-4 sm:px-6 my-10 min-h-screen">
-        <div className="flex w-full items-center justify-between mb-10">
-          <h1 className="flex font-array text-2xl">feed<span className="animate-pulse">_</span></h1>
-        </div>
+      <Header />
+      <section className="relative z-0 container mx-auto px-4 sm:px-6 mt-20 mb-10 min-h-screen">
 
         <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} position="fixed" />
 

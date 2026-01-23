@@ -4,6 +4,7 @@
 
 import localFont from 'next/font/local'
 import { BreakpointIndicator } from "@/components/BreakpointIndicator";
+import { DevPerformanceMonitor } from "@/components/DevPerformanceMonitor";
 import "./globals.css";
 
 
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body className={`${arrayFont.variable} antialiased`}>
         {children}
         <BreakpointIndicator />
+        <DevPerformanceMonitor />
       </body>
     </html>
   );

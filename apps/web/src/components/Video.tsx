@@ -1,9 +1,20 @@
 'use client';
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { SelfHostedMedia } from "./FeedMedia";
 import { VideoControls, useVideoControls } from "./ui/VideoControls";
 import { useMediaVisibility, VisibilityState } from "@/hooks/useMediaVisibility";
+
+// Polyfill requestIdleCallback for Safari
+const requestIdleCallbackPolyfill =
+  typeof window !== 'undefined' && 'requestIdleCallback' in window
+    ? window.requestIdleCallback
+    : (cb: IdleRequestCallback) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 1);
+
+const cancelIdleCallbackPolyfill =
+  typeof window !== 'undefined' && 'cancelIdleCallback' in window
+    ? window.cancelIdleCallback
+    : clearTimeout;
 
 interface VideoProps {
   video: SelfHostedMedia;
@@ -44,23 +55,44 @@ export default function Video({ video, videoRef, showControls = true, visibility
     }
   }, [isVisible, activeRef, isDeloaded]);
 
+  // Track idle callback for cleanup
+  const idleCallbackRef = useRef<number | ReturnType<typeof setTimeout>>(0);
+
   // Deload video when far off-screen to free memory
+  // Uses requestIdleCallback to avoid blocking scroll with expensive load() calls
   useEffect(() => {
     const videoEl = activeRef.current;
     if (!videoEl) return;
 
+    // Cancel any pending idle callback
+    if (idleCallbackRef.current) {
+      cancelIdleCallbackPolyfill(idleCallbackRef.current as number);
+      idleCallbackRef.current = 0;
+    }
+
     if (shouldDeload && videoLoaded && !isDeloaded) {
-      // Pause and clear source to release memory
-      videoEl.pause();
-      videoEl.removeAttribute('src');
-      videoEl.load(); // Triggers resource release
-      setIsDeloaded(true);
+      // Defer the expensive deload operation to idle time
+      idleCallbackRef.current = requestIdleCallbackPolyfill(() => {
+        // Re-check conditions in case they changed
+        if (!activeRef.current) return;
+        // Pause and clear source to release memory
+        activeRef.current.pause();
+        activeRef.current.removeAttribute('src');
+        activeRef.current.load(); // Triggers resource release
+        setIsDeloaded(true);
+      }, { timeout: 500 }); // Allow up to 500ms before forcing
     } else if (!shouldDeload && isDeloaded && videoUrl) {
-      // Reload video when coming back into view
+      // Reload immediately when coming back - user is waiting
       videoEl.src = videoUrl;
       videoEl.load();
       setIsDeloaded(false);
     }
+
+    return () => {
+      if (idleCallbackRef.current) {
+        cancelIdleCallbackPolyfill(idleCallbackRef.current as number);
+      }
+    };
   }, [shouldDeload, videoLoaded, isDeloaded, activeRef, videoUrl]);
 
   if (!video.url || video.mediaType !== 'video') return null;
@@ -68,15 +100,14 @@ export default function Video({ video, videoRef, showControls = true, visibility
   return (
     <div ref={containerRef} className="group relative w-full h-full overflow-hidden rounded-lg">
       {/* Layer 1 (bottom): LQIP blur placeholder */}
+      {/* Uses GPU-accelerated blur via CSS class for better scroll perf */}
       {video.lqip && (
         <div
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-10 lqip-blur"
           style={{
             backgroundImage: `url(${video.lqip})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(20px)',
-            transform: 'scale(1.1)',
           }}
         />
       )}

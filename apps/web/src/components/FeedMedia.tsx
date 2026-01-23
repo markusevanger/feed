@@ -103,15 +103,14 @@ function FeedImage({ media, colSpan }: FeedMediaProps) {
     >
       <div ref={containerRef} className="relative w-full h-full">
         {/* LQIP placeholder - always visible as background */}
+        {/* Uses GPU-accelerated blur via CSS class for better scroll perf */}
         {media.lqip && (
           <div
-            className="absolute inset-0 z-0 rounded-lg"
+            className="absolute inset-0 z-0 rounded-lg lqip-blur"
             style={{
               backgroundImage: `url(${media.lqip})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'blur(20px)',
-              transform: 'scale(1.1)',
             }}
           />
         )}

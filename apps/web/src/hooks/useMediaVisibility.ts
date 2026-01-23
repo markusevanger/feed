@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, RefObject } from 'react';
+import { useEffect, useState, useRef, RefObject, startTransition } from 'react';
 import { useMediaObserver } from '@/contexts/MediaObserverContext';
 
 export interface VisibilityState {
@@ -15,11 +15,14 @@ export interface VisibilityState {
 /**
  * Hook to track media visibility for lazy loading and deloading.
  * Uses shared IntersectionObserver from MediaObserverContext.
+ *
+ * Uses startTransition to mark visibility updates as low-priority,
+ * preventing them from blocking scroll and causing frame drops.
  */
 export function useMediaVisibility(
   ref: RefObject<HTMLElement | null>
 ): VisibilityState {
-  const { observe, unobserve, isMobile } = useMediaObserver();
+  const { observe, unobserve } = useMediaObserver();
   const [isVisible, setIsVisible] = useState(false);
   const [isNearby, setIsNearby] = useState(false);
   const hasBeenVisible = useRef(false);
@@ -30,12 +33,18 @@ export function useMediaVisibility(
 
     const handleIntersection = (entry: IntersectionObserverEntry, zone: 'visible' | 'nearby' | 'far') => {
       if (zone === 'visible') {
-        setIsVisible(entry.isIntersecting);
+        // Use startTransition to make this a low-priority update
+        // This prevents visibility changes from blocking scroll
+        startTransition(() => {
+          setIsVisible(entry.isIntersecting);
+        });
         if (entry.isIntersecting) {
           hasBeenVisible.current = true;
         }
       } else if (zone === 'nearby') {
-        setIsNearby(entry.isIntersecting);
+        startTransition(() => {
+          setIsNearby(entry.isIntersecting);
+        });
         if (entry.isIntersecting) {
           hasBeenVisible.current = true;
         }
