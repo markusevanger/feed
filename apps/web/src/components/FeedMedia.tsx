@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
 import MetadataDialog from "./MetadataDialog";
 import Video from "./Video";
 import { MediaLightbox } from "./MediaLightbox";
 import { cn } from "@/lib/utils";
+import { useMediaVisibility } from "@/hooks/useMediaVisibility";
 import type { SelfHostedMedia } from "../../sanity.types";
 
 // Re-export types for use in other components
@@ -66,49 +67,96 @@ export default function FeedMedia({ media, colSpan }: FeedMediaProps) {
   if (!media.url) return null;
 
   if (media.mediaType === 'image') {
-    const dateTimeOriginal = media.exif?.dateTime;
-    const createdAt = dateTimeOriginal ? new Date(dateTimeOriginal) : undefined;
-
-    const horizontal = isHorizontal(media.aspectRatio || 1);
-    const width = media.width || 800;
-    const height = media.height || 600;
-
-    // Use provided colSpan or fall back to natural sizing
-    const spanClass = colSpan
-      ? getSpanClass(colSpan)
-      : horizontal ? "lg:col-span-2" : "lg:col-span-1";
-
-    return (
-      <MediaWrapper
-        createdAt={createdAt}
-        metadata={media}
-        className={spanClass}
-        aspectRatio={media.aspectRatio || 1}
-      >
-        <MediaLightbox
-          type="image"
-          src={media.url}
-          alt={media.alt || "Image"}
-          width={width}
-          height={height}
-          lqip={media.lqip || undefined}
-        >
-          <Image
-            className="rounded-lg w-full h-full object-cover"
-            alt={media.alt || "Image"}
-            placeholder={media.lqip ? "blur" : "empty"}
-            blurDataURL={media.lqip || undefined}
-            src={media.url}
-            width={width}
-            height={height}
-          />
-        </MediaLightbox>
-      </MediaWrapper>
-    );
+    return <FeedImage media={media} colSpan={colSpan} />;
   }
 
   // Video
   return <FeedVideo media={media} colSpan={colSpan} />;
+}
+
+function FeedImage({ media, colSpan }: FeedMediaProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { shouldLoad, shouldDeload } = useMediaVisibility(containerRef);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const dateTimeOriginal = media.exif?.dateTime;
+  const createdAt = dateTimeOriginal ? new Date(dateTimeOriginal) : undefined;
+
+  const horizontal = isHorizontal(media.aspectRatio || 1);
+  const width = media.width || 800;
+  const height = media.height || 600;
+
+  // Use provided colSpan or fall back to natural sizing
+  const spanClass = colSpan
+    ? getSpanClass(colSpan)
+    : horizontal ? "lg:col-span-2" : "lg:col-span-1";
+
+  // Show image if should load OR if loaded and not yet should deload
+  const showImage = shouldLoad || (imageLoaded && !shouldDeload);
+
+  return (
+    <MediaWrapper
+      createdAt={createdAt}
+      metadata={media}
+      className={spanClass}
+      aspectRatio={media.aspectRatio || 1}
+    >
+      <div ref={containerRef} className="relative w-full h-full">
+        {/* LQIP placeholder - always visible as background */}
+        {media.lqip && (
+          <div
+            className="absolute inset-0 z-0 rounded-lg"
+            style={{
+              backgroundImage: `url(${media.lqip})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(20px)',
+              transform: 'scale(1.1)',
+            }}
+          />
+        )}
+
+        {/* Image - conditionally rendered based on visibility */}
+        {showImage && (
+          <MediaLightbox
+            type="image"
+            src={media.url!}
+            alt={media.alt || "Image"}
+            width={width}
+            height={height}
+            lqip={media.lqip || undefined}
+          >
+            <Image
+              className={cn(
+                "relative z-10 rounded-lg w-full h-full object-cover transition-opacity duration-300",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              )}
+              alt={media.alt || "Image"}
+              src={media.url!}
+              width={width}
+              height={height}
+              loading="eager" // We control lazy loading via IntersectionObserver
+              onLoad={() => setImageLoaded(true)}
+            />
+          </MediaLightbox>
+        )}
+
+        {/* Show LQIP in lightbox trigger area when image is deloaded */}
+        {!showImage && (
+          <MediaLightbox
+            type="image"
+            src={media.url!}
+            alt={media.alt || "Image"}
+            width={width}
+            height={height}
+            lqip={media.lqip || undefined}
+          >
+            <div className="relative z-10 w-full h-full" />
+          </MediaLightbox>
+        )}
+      </div>
+    </MediaWrapper>
+  );
 }
 
 function FeedVideo({ media, colSpan }: FeedMediaProps) {
