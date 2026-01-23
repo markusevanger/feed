@@ -330,7 +330,7 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
     [onChange, value]
   );
 
-  // Auto-arrange items using the packing algorithm
+  // Auto-arrange items using a varied packing algorithm
   const handleAutoArrange = useCallback(() => {
     const items = (value || []) as MediaGridItem[];
     if (items.length === 0) return;
@@ -348,35 +348,77 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
     const span1Items = items.filter((i) => getNaturalSpan(i) === 1);
     const span2Items = items.filter((i) => getNaturalSpan(i) === 2);
 
-    // Build optimized order
+    // Build optimized order with varied patterns
     const arranged: MediaGridItem[] = [];
     let s1Idx = 0;
     let s2Idx = 0;
+    let rowPattern = 0; // Cycle through different row patterns
 
     while (s1Idx < span1Items.length || s2Idx < span2Items.length) {
-      // Priority 1: [2, 1] - one horizontal + one vertical
-      if (s2Idx < span2Items.length && s1Idx < span1Items.length) {
+      const hasSpan1 = s1Idx < span1Items.length;
+      const hasSpan2 = s2Idx < span2Items.length;
+      const hasThreeSpan1 = s1Idx + 3 <= span1Items.length;
+
+      // Define row patterns and cycle through them for variety
+      // Pattern 0: [2, 1] - horizontal left, vertical right
+      // Pattern 1: [1, 2] - vertical left, horizontal right
+      // Pattern 2: [1, 1, 1] - three verticals
+      const pattern = rowPattern % 3;
+
+      let usedPattern = false;
+
+      if (pattern === 0 && hasSpan2 && hasSpan1) {
+        // [2, 1] - horizontal + vertical
         arranged.push(span2Items[s2Idx++]);
         arranged.push(span1Items[s1Idx++]);
+        usedPattern = true;
+      } else if (pattern === 1 && hasSpan1 && hasSpan2) {
+        // [1, 2] - vertical + horizontal
+        arranged.push(span1Items[s1Idx++]);
+        arranged.push(span2Items[s2Idx++]);
+        usedPattern = true;
+      } else if (pattern === 2 && hasThreeSpan1) {
+        // [1, 1, 1] - three verticals
+        arranged.push(span1Items[s1Idx++]);
+        arranged.push(span1Items[s1Idx++]);
+        arranged.push(span1Items[s1Idx++]);
+        usedPattern = true;
+      }
+
+      if (usedPattern) {
+        rowPattern++;
         continue;
       }
 
-      // Priority 2: [1, 1, 1] - three verticals
-      if (s1Idx + 3 <= span1Items.length) {
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
+      // Fallback: try any available complete row pattern
+      if (hasSpan2 && hasSpan1) {
+        // Alternate direction based on row count
+        if (arranged.length % 2 === 0) {
+          arranged.push(span2Items[s2Idx++]);
+          arranged.push(span1Items[s1Idx++]);
+        } else {
+          arranged.push(span1Items[s1Idx++]);
+          arranged.push(span2Items[s2Idx++]);
+        }
+        rowPattern++;
         continue;
       }
 
-      // Priority 3: Remaining horizontal
-      if (s2Idx < span2Items.length) {
+      if (hasThreeSpan1) {
+        arranged.push(span1Items[s1Idx++]);
+        arranged.push(span1Items[s1Idx++]);
+        arranged.push(span1Items[s1Idx++]);
+        rowPattern++;
+        continue;
+      }
+
+      // Handle remaining items that can't form complete rows
+      if (hasSpan2) {
         arranged.push(span2Items[s2Idx++]);
         continue;
       }
 
-      // Priority 4: Remaining verticals
-      if (s1Idx < span1Items.length) {
+      if (hasSpan1) {
         arranged.push(span1Items[s1Idx++]);
         continue;
       }
