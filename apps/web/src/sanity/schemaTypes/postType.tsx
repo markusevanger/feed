@@ -2,6 +2,7 @@ import React from 'react'
 import { DocumentTextIcon } from '@sanity/icons'
 import { defineArrayMember, defineField, defineType } from 'sanity'
 import BulkMediaUpload from '../plugins/selfHostedMedia/BulkMediaUpload'
+import { thumbUrl } from '../plugins/selfHostedMedia/schema'
 
 export const postType = defineType({
   name: 'post',
@@ -49,7 +50,7 @@ export const postType = defineType({
         media: imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={imageUrl}
+            src={thumbUrl(imageUrl)}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

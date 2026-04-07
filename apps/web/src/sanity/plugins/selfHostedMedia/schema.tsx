@@ -4,6 +4,14 @@ import ImageUploadInput from './ImageUploadInput';
 import VideoUploadInput from './VideoUploadInput';
 import MediaUploadInput from './MediaUploadInput';
 
+/**
+ * Convert a full media URL to a low-res thumbnail URL.
+ * e.g. https://media.example.com/files/images/abc.jpg → https://media.example.com/thumb/images/abc.jpg?w=200
+ */
+export function thumbUrl(url: string, width = 200): string {
+  return url.replace('/files/', '/thumb/') + `?w=${width}`;
+}
+
 // Cache for URL existence checks to avoid repeated requests
 const urlExistsCache = new Map<string, { exists: boolean; timestamp: number }>();
 const CACHE_TTL = 60000; // 1 minute cache
@@ -123,7 +131,7 @@ export const selfHostedImageType = defineType({
         media: url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={url}
+            src={thumbUrl(url)}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -197,7 +205,7 @@ export const selfHostedVideoType = defineType({
         media: thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={thumbnailUrl}
+            src={thumbUrl(thumbnailUrl)}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -387,7 +395,7 @@ export const selfHostedMediaType = defineType({
           media: thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={thumbnailUrl}
+              src={thumbUrl(thumbnailUrl)}
               alt=""
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -399,7 +407,7 @@ export const selfHostedMediaType = defineType({
         media: url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={url}
+            src={thumbUrl(url)}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

@@ -19,6 +19,7 @@ import {
   ResetIcon,
 } from '@sanity/icons';
 import type { SelfHostedMedia } from '@feed/shared';
+import { thumbUrl } from './schema';
 
 // Row height - sized so 1-col items have phone aspect ratio (9:16)
 // Grid is ~300px wide total, so 1-col ≈ 100px wide
@@ -352,7 +353,7 @@ function MediaGridItem({
         isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.url}
+            src={thumbUrl(item.url!, 300)}
             alt=""
             style={{
               width: '100%',
@@ -376,7 +377,7 @@ function MediaGridItem({
             {item.thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={item.thumbnailUrl}
+                src={thumbUrl(item.thumbnailUrl, 300)}
                 alt=""
                 style={{
                   width: '100%',

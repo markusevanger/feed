@@ -10,6 +10,7 @@ import { statfs } from 'fs/promises';
 import { createHash } from 'crypto';
 import { nanoid } from 'nanoid';
 import { fileTypeFromBuffer } from 'file-type';
+import sharp from 'sharp';
 import { extractImageMetadata, extractVideoMetadata, extractVideoThumbnail } from './metadata.js';
 import {
   analyzeVideoCodecs,
@@ -58,6 +59,7 @@ async function ensureDirectories() {
   await fs.mkdir(path.join(UPLOAD_DIR, 'images'), { recursive: true });
   await fs.mkdir(path.join(UPLOAD_DIR, 'videos'), { recursive: true });
   await fs.mkdir(path.join(UPLOAD_DIR, 'thumbnails'), { recursive: true });
+  await fs.mkdir(path.join(UPLOAD_DIR, '.thumb-cache'), { recursive: true });
 }
 
 // Hash index for duplicate detection
@@ -721,6 +723,55 @@ app.delete(
     }
   }
 );
+
+// Thumbnail endpoint - resized images on the fly with disk cache
+app.get('/thumb/:type/:filename', async (req, res) => {
+  try {
+    const { type, filename } = req.params;
+    if (type !== 'images' && type !== 'thumbnails') {
+      return res.status(400).json({ error: 'Invalid type for thumbnails' });
+    }
+
+    const width = Math.min(Math.max(parseInt(req.query.w as string) || 200, 32), 800);
+    const sanitizedFilename = path.basename(filename);
+    const sourcePath = path.join(UPLOAD_DIR, type, sanitizedFilename);
+
+    // Check source exists
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Check cache
+    const cacheKey = `${type}_${sanitizedFilename}_w${width}`;
+    const cachePath = path.join(UPLOAD_DIR, '.thumb-cache', cacheKey + '.webp');
+
+    try {
+      const cached = await fs.readFile(cachePath);
+      res.set('Content-Type', 'image/webp');
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(cached);
+    } catch {
+      // Not cached, generate
+    }
+
+    const buffer = await sharp(sourcePath)
+      .resize(width, undefined, { withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .toBuffer();
+
+    // Write cache (non-blocking)
+    fs.writeFile(cachePath, buffer).catch(() => {});
+
+    res.set('Content-Type', 'image/webp');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Thumbnail error:', error);
+    res.status(500).json({ error: 'Failed to generate thumbnail' });
+  }
+});
 
 // Static file serving
 app.use(
