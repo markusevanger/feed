@@ -9,4 +9,4 @@ Feed is a completely self-hosted media-only travel blog. It functions both as a 
 
 This page loads and unloads high res media while scrolling, so you should probably not use mobile internet :)
 
-CLAUDE DISCLAIMER i built this in large part with Claude just to see how far i can get with it
+**CLAUDE DISCLAIMER!** i built this in large part with Claude just to see how far i can get with it
