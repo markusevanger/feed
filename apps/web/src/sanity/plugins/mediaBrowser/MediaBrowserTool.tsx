@@ -17,6 +17,7 @@ import {
   Button,
 } from '@sanity/ui';
 import { ResetIcon, ImageIcon, PlayIcon, DatabaseIcon, TrashIcon, ControlsIcon } from '@sanity/icons';
+import { thumbUrl } from '../selfHostedMedia/schema';
 
 interface MediaFile {
   id: string;
@@ -629,7 +630,7 @@ export function MediaBrowserTool() {
               <Box style={{ aspectRatio: '1', overflow: 'hidden', borderRadius: 4 }}>
                 {selectedMedia.type === 'image' ? (
                   <img
-                    src={selectedMedia.url}
+                    src={thumbUrl(selectedMedia.url, 600)}
                     alt={selectedMedia.filename}
                     style={{
                       width: '100%',
@@ -996,7 +997,7 @@ function MediaGrid({
           <Box style={{ aspectRatio: '1', position: 'relative' }}>
             {file.type === 'image' ? (
               <img
-                src={file.url}
+                src={thumbUrl(file.url, 300)}
                 alt={file.filename}
                 loading="lazy"
                 style={{

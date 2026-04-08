@@ -24,6 +24,7 @@ import {
   CheckmarkCircleIcon,
   AddIcon,
 } from '@sanity/icons';
+import { thumbUrl } from './schema';
 
 interface MediaFile {
   id: string;
@@ -322,7 +323,7 @@ export function MediaPicker({
                     <Box style={{ aspectRatio: '1', position: 'relative' }}>
                       {file.type === 'image' ? (
                         <img
-                          src={file.url}
+                          src={thumbUrl(file.url, 300)}
                           alt={file.filename}
                           loading="lazy"
                           style={{

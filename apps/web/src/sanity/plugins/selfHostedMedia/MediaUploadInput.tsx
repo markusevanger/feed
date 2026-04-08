@@ -8,6 +8,7 @@ import type { ObjectInputProps } from 'sanity';
 import { uploadFile, deleteFile } from './api';
 import { nanoid } from 'nanoid';
 import { MediaPicker, type SelectedMediaItem } from './MediaPicker';
+import { thumbUrl } from './schema';
 
 interface MediaValue {
   _type: 'selfHostedMedia';
@@ -238,7 +239,7 @@ export default function MediaUploadInput(props: ObjectInputProps) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={value.url}
+              src={thumbUrl(value.url, 600)}
               alt={value.alt || ''}
               style={{
                 position: 'absolute',

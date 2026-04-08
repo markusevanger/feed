@@ -7,6 +7,7 @@ import { set, unset } from 'sanity';
 import type { ObjectInputProps } from 'sanity';
 import { uploadFile, deleteFile } from './api';
 import type { SelfHostedImage } from './types';
+import { thumbUrl } from './schema';
 import { nanoid } from 'nanoid';
 
 type ImageValue = SelfHostedImage | undefined;
@@ -119,7 +120,7 @@ export default function ImageUploadInput(props: ObjectInputProps) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={value.url}
+              src={thumbUrl(value.url, 600)}
               alt={value.alt || ''}
               style={{
                 position: 'absolute',
