@@ -698,7 +698,8 @@ app.delete(
   apiLimiter,
   async (req, res) => {
     try {
-      const { type, filename } = req.params;
+      const type = req.params.type as string;
+      const filename = req.params.filename as string;
 
       if (type !== 'images' && type !== 'videos') {
         return res.status(400).json({ error: 'Invalid file type' });
@@ -727,7 +728,8 @@ app.delete(
 // Thumbnail endpoint - resized images on the fly with disk cache
 app.get('/thumb/:type/:filename', async (req, res) => {
   try {
-    const { type, filename } = req.params;
+    const type = req.params.type as string;
+    const filename = req.params.filename as string;
     if (type !== 'images' && type !== 'thumbnails') {
       return res.status(400).json({ error: 'Invalid type for thumbnails' });
     }
