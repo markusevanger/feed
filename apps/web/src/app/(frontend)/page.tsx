@@ -1,6 +1,10 @@
 import FeedMedia from "@/components/FeedMedia";
 import { FeedContainer } from "@/components/FeedContainer";
+import HeroSection from "@/components/HeroSection";
+
 import Header from "@/components/Header";
+import HeroGlobe from "@/components/HeroGlobe";
+import { HeroGlobeProvider } from "@/contexts/HeroGlobeContext";
 import IntroAnimation from "@/components/IntroAnimation";
 import MobiusStripLogo from "@/components/MobiusStripLogo";
 import PostFilterBadges from "@/components/PostFilterBadges";
@@ -135,6 +139,10 @@ function generateJsonLd(posts: PostWithMedia[]) {
   };
 }
 
+const FRONTPAGE_QUERY = `*[_type == "frontpage" && _id == "frontpage"][0]{
+  heroContent
+}`;
+
 const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
   _id,
   _type,
@@ -160,9 +168,35 @@ const POST_QUERY = `*[_type == "post"] | order(_createdAt desc) {
   }
 }`;
 
+function extractGlobeLocations(posts: PostWithMedia[]) {
+  const locations: { lat: number; lon: number; label: string; postSlug: string; postTitle: string; count: number }[] = [];
+
+  for (const post of posts) {
+    if (!post.media) continue;
+    for (const media of post.media) {
+      if (media.location?.lat && media.location?.lon) {
+        locations.push({
+          lat: media.location.lat,
+          lon: media.location.lon,
+          label: post.title ?? "",
+          postSlug: post.slug?.current ?? "",
+          postTitle: post.title ?? "",
+          count: 1,
+        });
+      }
+    }
+  }
+
+  return locations;
+}
+
 export default async function Page() {
-  const posts = await client.fetch<PostWithMedia[]>(POST_QUERY);
+  const [posts, frontpage] = await Promise.all([
+    client.fetch<PostWithMedia[]>(POST_QUERY),
+    client.fetch<{ heroContent?: unknown[] } | null>(FRONTPAGE_QUERY),
+  ]);
   const jsonLd = generateJsonLd(posts);
+  const globeLocations = extractGlobeLocations(posts);
 
   return (
     <>
@@ -173,18 +207,30 @@ export default async function Page() {
         strategy="afterInteractive"
       />
       <IntroAnimation>
+      <HeroGlobeProvider>
       <Header />
+
+      {/* Hero globe showing all post locations */}
+      {globeLocations.length > 0 && (
+        <HeroGlobe allLocations={globeLocations} />
+      )}
+
+      <HeroSection
+        heroContent={frontpage?.heroContent}
+        posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))}
+      />
+
       <section className="relative z-0 container mx-auto px-4 sm:px-6 mt-20 mb-10 min-h-screen">
 
-        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} position="fixed" />
+        <PostFilterBadges posts={posts.map((p) => ({ _id: p._id, title: p.title, slug: p.slug?.current ?? null }))} position="fixed" globeLocations={globeLocations} />
 
         <FeedContainer>
-          <div className="flex flex-col gap-8 lg:px-40">
+          <div className="flex flex-col gap-40 lg:px-40">
             {posts && posts.length > 0 ? (
               posts.map((post) => (
                 <div key={post._id} id={`post-${post.slug?.current}`} className="scroll-mt-4">
                   <div className="flex justify-between border-b border-border mb-2 pb-1 font-array">
-                    <h2 className="font-mono text-sm">{post.title}</h2>
+                    <h2 className="text-2xl">{post.title}</h2>
                     <div className="flex items-center gap-1">
                       {isSameDay(new Date(post._createdAt), new Date()) &&
                         <span className="relative flex items-center justify-center size-2">
@@ -224,10 +270,11 @@ export default async function Page() {
         <MobiusStripLogo className="h-16 w-auto" />
         <div className="text-sm px-4 py-1 bg-muted rounded-full opacity-60 hover:opacity-100 transition-opacity">
           <p>
-            utvikling og reising av <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>
+            development and travels by <Link className="underline" href="https://markusevanger.no">markusevanger.no</Link>
           </p>
         </div>
       </footer>
+      </HeroGlobeProvider>
     </IntroAnimation>
     </>
   );

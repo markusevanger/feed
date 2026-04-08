@@ -1,18 +1,23 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
   Card,
   Flex,
   Grid,
+  Menu,
+  MenuButton,
+  MenuItem,
   Stack,
   Text,
   Tooltip,
 } from '@sanity/ui';
 import {
+  CopyIcon,
   DragHandleIcon,
+  EllipsisVerticalIcon,
   ImageIcon,
   PlayIcon,
   TrashIcon,
@@ -44,6 +49,7 @@ interface MediaGridPreviewProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   onRemove: (key: string) => void;
   onAutoArrange: () => void;
+  onDeduplicate: () => number;
   onItemClick?: (key: string) => void;
   readOnly?: boolean;
 }
@@ -102,11 +108,13 @@ export function MediaGridPreview({
   onReorder,
   onRemove,
   onAutoArrange,
+  onDeduplicate,
   onItemClick,
   readOnly = false,
 }: MediaGridPreviewProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dedupeMessage, setDedupeMessage] = useState<string | null>(null);
 
   const layoutItems = useMemo(() => calculateRowLayout(items), [items]);
 
@@ -177,26 +185,60 @@ export function MediaGridPreview({
           <Flex gap={2} align="center">
             <Text size={1} weight="semibold">Grid Preview</Text>
             <Text size={0} muted>({items.length} items)</Text>
+            {dedupeMessage && (
+              <Text size={0} muted>{dedupeMessage}</Text>
+            )}
           </Flex>
           {!readOnly && (
-            <Tooltip
-              content={
-                <Box padding={2}>
-                  <Text size={1}>Auto-arrange for optimal layout</Text>
-                </Box>
-              }
-              placement="top"
-            >
-              <Button
-                icon={ResetIcon}
-                text="Auto-arrange"
-                mode="ghost"
-                tone={hasIncompleteRows ? 'caution' : 'default'}
-                fontSize={1}
-                padding={2}
-                onClick={onAutoArrange}
+            <Flex gap={2}>
+              <Tooltip
+                content={
+                  <Box padding={2}>
+                    <Text size={1}>Auto-arrange for optimal layout</Text>
+                  </Box>
+                }
+                placement="top"
+              >
+                <Button
+                  icon={ResetIcon}
+                  text="Auto-arrange"
+                  mode="ghost"
+                  tone={hasIncompleteRows ? 'caution' : 'default'}
+                  fontSize={1}
+                  padding={2}
+                  onClick={onAutoArrange}
+                />
+              </Tooltip>
+              <MenuButton
+                button={
+                  <Button
+                    icon={EllipsisVerticalIcon}
+                    mode="ghost"
+                    fontSize={1}
+                    padding={2}
+                  />
+                }
+                id="media-grid-tools-menu"
+                menu={
+                  <Menu>
+                    <MenuItem
+                      icon={CopyIcon}
+                      text="Remove duplicates"
+                      onClick={() => {
+                        const removed = onDeduplicate();
+                        if (removed > 0) {
+                          setDedupeMessage(`Removed ${removed} duplicate${removed > 1 ? 's' : ''}`);
+                        } else {
+                          setDedupeMessage('No duplicates found');
+                        }
+                        setTimeout(() => setDedupeMessage(null), 3000);
+                      }}
+                    />
+                  </Menu>
+                }
+                popover={{ placement: 'bottom-end' }}
               />
-            </Tooltip>
+            </Flex>
           )}
         </Flex>
 

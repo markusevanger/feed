@@ -330,6 +330,29 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
     [onChange, value]
   );
 
+  // Remove duplicate media items (same URL)
+  const handleDeduplicate = useCallback((): number => {
+    const items = (value || []) as MediaGridItem[];
+    if (items.length === 0) return 0;
+
+    const seen = new Set<string>();
+    const deduped: MediaGridItem[] = [];
+
+    for (const item of items) {
+      const key = item.url || item._key;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(item);
+      }
+    }
+
+    const removed = items.length - deduped.length;
+    if (removed > 0) {
+      onChange(set(deduped));
+    }
+    return removed;
+  }, [onChange, value]);
+
   // Auto-arrange items using a varied packing algorithm
   const handleAutoArrange = useCallback(() => {
     const items = (value || []) as MediaGridItem[];
@@ -452,6 +475,7 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
         onReorder={handleReorder}
         onRemove={handleRemoveFromGrid}
         onAutoArrange={handleAutoArrange}
+        onDeduplicate={handleDeduplicate}
         readOnly={readOnly}
       />
 
