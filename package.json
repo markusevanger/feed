@@ -12,7 +12,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck --filter='*'",
     "clean": "turbo clean && rm -rf node_modules",
-    "migrate:self-hosted": "pnpm --filter @feed/web exec tsx ../../migrations/migrate-to-self-hosted.ts"
+    "migrate:self-hosted": "pnpm --filter @feed/web exec tsx ../../migrations/migrate-to-self-hosted.ts",
+    "migrate:recalculate-images": "pnpm --filter @feed/media-server exec tsx ../../migrations/recalculate-image-dimensions.ts"
   },
   "devDependencies": {
     "sharp": "^0.34.5",

@@ -17,6 +17,7 @@ import {
 import {
   CopyIcon,
   DragHandleIcon,
+  EditIcon,
   EllipsisVerticalIcon,
   ImageIcon,
   PlayIcon,
@@ -42,6 +43,19 @@ export interface MediaGridItem {
   lqip?: string;
   orientation?: 'horizontal' | 'vertical';
   thumbnailUrl?: string;
+  // Image-specific fields for editing
+  alt?: string;
+  exif?: {
+    dateTime?: string;
+    lensMake?: string;
+    lensModel?: string;
+  };
+  location?: {
+    lat?: number;
+    lon?: number;
+  };
+  // Video-specific fields for editing
+  mimeType?: string;
 }
 
 interface MediaGridPreviewProps {
@@ -365,6 +379,7 @@ function MediaGridItem({
 }: MediaGridItemProps) {
   const isImage = item.mediaType === 'image';
   const hasUrl = !!item.url;
+  const isClickable = !readOnly && !!onClick;
 
   return (
     <Card
@@ -377,6 +392,7 @@ function MediaGridItem({
       onClick={onClick}
       padding={0}
       radius={2}
+      className="media-grid-item"
       style={{
         gridColumn: `span ${span}`,
         height: ROW_HEIGHT,
@@ -384,10 +400,10 @@ function MediaGridItem({
         border: isDragOver
           ? '2px solid var(--card-focus-ring-color)'
           : '1px solid var(--card-border-color)',
-        cursor: readOnly ? 'default' : 'grab',
+        cursor: isClickable ? 'pointer' : readOnly ? 'default' : 'grab',
         overflow: 'hidden',
         position: 'relative',
-        transition: 'border-color 0.15s, opacity 0.15s',
+        transition: 'border-color 0.15s, opacity 0.15s, transform 0.15s',
       }}
     >
       {/* Thumbnail or placeholder */}
@@ -527,10 +543,10 @@ function MediaGridItem({
         )}
       </Flex>
 
-      {/* Bottom bar - remove button */}
+      {/* Bottom bar - edit and remove buttons */}
       {!readOnly && (
         <Flex
-          justify="flex-end"
+          justify="space-between"
           padding={1}
           style={{
             position: 'absolute',
@@ -539,6 +555,26 @@ function MediaGridItem({
             right: 0,
           }}
         >
+          {/* Edit button */}
+          {onClick && (
+            <Button
+              icon={EditIcon}
+              mode="bleed"
+              padding={1}
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                borderRadius: 4,
+                color: 'white',
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            />
+          )}
+          {!onClick && <Box />}
+
+          {/* Remove button */}
           <Button
             icon={TrashIcon}
             mode="bleed"
@@ -558,6 +594,9 @@ function MediaGridItem({
 
       {/* CSS for hover effect */}
       <style>{`
+        .media-grid-item:hover {
+          border-color: var(--card-focus-ring-color) !important;
+        }
         .media-grid-overlay:hover {
           opacity: 1 !important;
         }

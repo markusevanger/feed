@@ -200,30 +200,37 @@ export default function PostFilterBadges({ posts, position, globeLocations }: Po
 
       {/* Mobile: expanded menu */}
       <div className={`fixed right-4 z-40 lg:hidden transition-all duration-300 ${isVisible && mobileMenuOpen && !isAtBottom ? "bottom-20 opacity-100" : "bottom-16 opacity-0 pointer-events-none"}`}>
-        <div className="flex flex-col items-end gap-2 bg-background/80 backdrop-blur-sm border border-border rounded-2xl px-3 py-3 shadow-lg">
-          <Badge
-            variant={activeSlug === null ? "default" : "outline"}
-            className="cursor-pointer rounded-full px-2 py-1 text-xs transition-colors flex items-center gap-1"
-            onClick={() => {
-              scrollToPost(null);
-              setMobileMenuOpen(false);
-            }}
-          >
-            <Home className="size-3" /> Top
-          </Badge>
-          {posts.map((post) => (
+        <div className="flex items-end gap-3 bg-background/80 backdrop-blur-sm border border-border rounded-2xl px-3 py-3 shadow-lg">
+          {globeLocations && globeLocations.length > 0 && (
+            <div className="w-24 aspect-square shrink-0">
+              <GlobeSection mode="sidebar" focusLocation={focusLocation} paused={!mobileMenuOpen} />
+            </div>
+          )}
+          <div className="flex flex-col items-end gap-2">
             <Badge
-              key={post._id}
-              variant={activeSlug === post.slug ? "default" : "outline"}
-              className="cursor-pointer rounded-full px-3 py-1 text-xs transition-colors"
+              variant={activeSlug === null ? "default" : "outline"}
+              className="cursor-pointer rounded-full px-2 py-1 text-xs transition-colors flex items-center gap-1"
               onClick={() => {
-                scrollToPost(post.slug);
+                scrollToPost(null);
                 setMobileMenuOpen(false);
               }}
             >
-              {post.title || "Untitled"}
+              <Home className="size-3" /> Top
             </Badge>
-          ))}
+            {posts.map((post) => (
+              <Badge
+                key={post._id}
+                variant={activeSlug === post.slug ? "default" : "outline"}
+                className="cursor-pointer rounded-full px-3 py-1 text-xs transition-colors"
+                onClick={() => {
+                  scrollToPost(post.slug);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                {post.title || "Untitled"}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
     </>

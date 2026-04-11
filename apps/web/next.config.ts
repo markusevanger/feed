@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['work.sunfish-ide.ts.net'],
   env: {
     SANITY_STUDIO_MEDIA_SERVER_URL: process.env.SANITY_STUDIO_MEDIA_SERVER_URL,
     SANITY_STUDIO_MEDIA_API_KEY: process.env.SANITY_STUDIO_MEDIA_API_KEY,

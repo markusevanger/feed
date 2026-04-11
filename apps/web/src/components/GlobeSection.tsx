@@ -75,16 +75,35 @@ export default function GlobeSection({
   // Deduped hero locations with stable ids
   const heroLocations = allLocations ? dedupeLocations(allLocations) : [];
 
-  // Spin-in animation state
-  const wasPausedRef = useRef(paused);
-  const spinVelocityRef = useRef(0);
+  // Spin animation state
+  const wasPausedRef = useRef(true);
+  const entryDirectionRef = useRef(1);
+  const exitingRef = useRef(false);
+  const exitVelocityRef = useRef(0);
 
   // Update refs when props change
   useEffect(() => {
-    // Spin-in: when sidebar globe becomes visible, kick off a decaying spin
-    if (wasPausedRef.current && !paused && mode === "sidebar") {
-      spinVelocityRef.current = 0.25;
+    // Entry: when sidebar globe becomes visible, offset phi so it sweeps to target
+    if (wasPausedRef.current && !paused && mode === "sidebar" && focusLocation) {
+      exitingRef.current = false;
+      const [targetPhi] = locationToAngles(focusLocation.lat, focusLocation.lon);
+      const dist = targetPhi - currentPhiRef.current;
+      const normalizedDist =
+        ((dist % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+      entryDirectionRef.current = Math.sign(normalizedDist) || 1;
+      const extraSweep = entryDirectionRef.current * 2;
+      currentPhiRef.current = targetPhi - normalizedDist - extraSweep;
     }
+
+    // Exit: when sidebar globe is hiding, spin away in reverse direction
+    if (!wasPausedRef.current && paused && mode === "sidebar") {
+      exitingRef.current = true;
+      exitVelocityRef.current = -entryDirectionRef.current * 0.06;
+      setTimeout(() => {
+        exitingRef.current = false;
+      }, 350);
+    }
+
     wasPausedRef.current = paused;
 
     focusRef.current = focusLocation;
@@ -144,7 +163,7 @@ export default function GlobeSection({
     globeRef.current = globe;
 
     const animate = () => {
-      if (pausedRef.current) {
+      if (pausedRef.current && !exitingRef.current) {
         animationId = requestAnimationFrame(animate);
         return;
       }
@@ -154,6 +173,10 @@ export default function GlobeSection({
 
       if (pointerDownRef.current) {
         // User is dragging — don't auto-rotate
+      } else if (exitingRef.current) {
+        // Exit: spin away from target in reverse direction
+        currentPhiRef.current += exitVelocityRef.current;
+        exitVelocityRef.current *= 0.95;
       } else if (currentMode === "hero") {
         currentPhiRef.current += idleSpeedRef.current;
       } else if (focus) {
@@ -161,14 +184,6 @@ export default function GlobeSection({
         const distPhi = targetPhi - currentPhiRef.current;
         const normalizedDist =
           ((distPhi % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
-
-        // Apply spin velocity (decaying spin-in animation)
-        if (spinVelocityRef.current > 0.001) {
-          currentPhiRef.current += spinVelocityRef.current;
-          spinVelocityRef.current *= 0.96;
-        } else {
-          spinVelocityRef.current = 0;
-        }
 
         currentPhiRef.current += normalizedDist * 0.05;
         currentThetaRef.current +=

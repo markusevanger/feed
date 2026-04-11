@@ -57,15 +57,22 @@ function formatExposureTime(exposure: number | undefined): string | undefined {
 }
 
 export async function extractImageMetadata(buffer: Buffer): Promise<ImageMetadata> {
-  const image = sharp(buffer);
-  const metadata = await image.metadata();
+  // Get original metadata first (for EXIF data)
+  const originalMetadata = await sharp(buffer).metadata();
 
-  if (!metadata.width || !metadata.height) {
+  // Apply EXIF rotation and convert to buffer to get actual rotated dimensions
+  const rotatedBuffer = await sharp(buffer).rotate().toBuffer();
+
+  // Get metadata from the rotated image for correct dimensions
+  const rotatedImage = sharp(rotatedBuffer);
+  const rotatedMetadata = await rotatedImage.metadata();
+
+  if (!rotatedMetadata.width || !rotatedMetadata.height) {
     throw new Error('Could not determine image dimensions');
   }
 
   // Generate LQIP (Low Quality Image Placeholder)
-  const lqipBuffer = await image
+  const lqipBuffer = await rotatedImage
     .resize(20, 20, { fit: 'inside' })
     .jpeg({ quality: 50 })
     .blur(2)
@@ -74,11 +81,14 @@ export async function extractImageMetadata(buffer: Buffer): Promise<ImageMetadat
   const lqip = `data:image/jpeg;base64,${lqipBuffer.toString('base64')}`;
 
   const result: ImageMetadata = {
-    width: metadata.width,
-    height: metadata.height,
-    aspectRatio: Number((metadata.width / metadata.height).toFixed(4)),
+    width: rotatedMetadata.width,
+    height: rotatedMetadata.height,
+    aspectRatio: Number((rotatedMetadata.width / rotatedMetadata.height).toFixed(4)),
     lqip,
   };
+
+  // Use original metadata for EXIF extraction (rotated buffer loses EXIF)
+  const metadata = originalMetadata;
 
   // Extract EXIF data if available
   if (metadata.exif) {

@@ -26,6 +26,7 @@ import { nanoid } from 'nanoid';
 import type { UploadResponse } from './types';
 import { MediaPicker, type SelectedMediaItem } from './MediaPicker';
 import { MediaGridPreview, type MediaGridItem } from './MediaGridPreview';
+import { MediaEditDialog } from './MediaEditDialog';
 
 interface UploadItem {
   id: string;
@@ -50,6 +51,7 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
   const [dragOver, setDragOver] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
   const inputId = useId();
 
   // Track URLs added during this session to prevent duplicates in concurrent uploads
@@ -353,10 +355,20 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
     return removed;
   }, [onChange, value]);
 
-  // Auto-arrange items using a varied packing algorithm
+  // Auto-arrange items with variety in layout patterns
   const handleAutoArrange = useCallback(() => {
     const items = (value || []) as MediaGridItem[];
     if (items.length === 0) return;
+
+    // Fisher-Yates shuffle helper
+    const shuffle = <T,>(arr: T[]): T[] => {
+      const result = [...arr];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    };
 
     // Calculate natural spans
     const getNaturalSpan = (item: MediaGridItem): 1 | 2 => {
@@ -367,81 +379,67 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
       return item.orientation === 'horizontal' ? 2 : 1;
     };
 
-    // Separate by span type
-    const span1Items = items.filter((i) => getNaturalSpan(i) === 1);
-    const span2Items = items.filter((i) => getNaturalSpan(i) === 2);
+    // Separate by span type and shuffle each group for variety
+    const span1Items = shuffle(items.filter((i) => getNaturalSpan(i) === 1));
+    const span2Items = shuffle(items.filter((i) => getNaturalSpan(i) === 2));
 
-    // Build optimized order with varied patterns
+    // Build arranged array with varied row patterns
     const arranged: MediaGridItem[] = [];
     let s1Idx = 0;
     let s2Idx = 0;
-    let rowPattern = 0; // Cycle through different row patterns
+    // Track recent patterns to avoid repetition
+    let lastPattern: '2+1' | '1+2' | '1+1+1' | null = null;
 
     while (s1Idx < span1Items.length || s2Idx < span2Items.length) {
-      const hasSpan1 = s1Idx < span1Items.length;
-      const hasSpan2 = s2Idx < span2Items.length;
-      const hasThreeSpan1 = s1Idx + 3 <= span1Items.length;
+      const has2Col = s2Idx < span2Items.length;
+      const has1Col = s1Idx < span1Items.length;
+      const hasThree1Col = s1Idx + 3 <= span1Items.length;
 
-      // Define row patterns and cycle through them for variety
-      // Pattern 0: [2, 1] - horizontal left, vertical right
-      // Pattern 1: [1, 2] - vertical left, horizontal right
-      // Pattern 2: [1, 1, 1] - three verticals
-      const pattern = rowPattern % 3;
+      // Collect valid patterns for this iteration
+      const validPatterns: Array<'2+1' | '1+2' | '1+1+1'> = [];
 
-      let usedPattern = false;
-
-      if (pattern === 0 && hasSpan2 && hasSpan1) {
-        // [2, 1] - horizontal + vertical
-        arranged.push(span2Items[s2Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        usedPattern = true;
-      } else if (pattern === 1 && hasSpan1 && hasSpan2) {
-        // [1, 2] - vertical + horizontal
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span2Items[s2Idx++]);
-        usedPattern = true;
-      } else if (pattern === 2 && hasThreeSpan1) {
-        // [1, 1, 1] - three verticals
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        usedPattern = true;
+      if (has2Col && has1Col) {
+        validPatterns.push('2+1');
+        validPatterns.push('1+2');
+      }
+      if (hasThree1Col) {
+        validPatterns.push('1+1+1');
       }
 
-      if (usedPattern) {
-        rowPattern++;
-        continue;
-      }
+      // Pick one randomly, but prefer not to repeat the same pattern twice
+      if (validPatterns.length > 0) {
+        let chosenPattern: '2+1' | '1+2' | '1+1+1';
 
-      // Fallback: try any available complete row pattern
-      if (hasSpan2 && hasSpan1) {
-        // Alternate direction based on row count
-        if (arranged.length % 2 === 0) {
+        if (validPatterns.length === 1) {
+          chosenPattern = validPatterns[0];
+        } else {
+          const varied = validPatterns.filter((p) => p !== lastPattern);
+          const choices = varied.length > 0 ? varied : validPatterns;
+          chosenPattern = choices[Math.floor(Math.random() * choices.length)];
+        }
+
+        lastPattern = chosenPattern;
+
+        if (chosenPattern === '2+1') {
           arranged.push(span2Items[s2Idx++]);
           arranged.push(span1Items[s1Idx++]);
+        } else if (chosenPattern === '1+2') {
+          arranged.push(span1Items[s1Idx++]);
+          arranged.push(span2Items[s2Idx++]);
         } else {
           arranged.push(span1Items[s1Idx++]);
-          arranged.push(span2Items[s2Idx++]);
+          arranged.push(span1Items[s1Idx++]);
+          arranged.push(span1Items[s1Idx++]);
         }
-        rowPattern++;
-        continue;
-      }
-
-      if (hasThreeSpan1) {
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        arranged.push(span1Items[s1Idx++]);
-        rowPattern++;
         continue;
       }
 
       // Handle remaining items that can't form complete rows
-      if (hasSpan2) {
+      if (has2Col) {
         arranged.push(span2Items[s2Idx++]);
         continue;
       }
-
-      if (hasSpan1) {
+      if (has1Col) {
         arranged.push(span1Items[s1Idx++]);
         continue;
       }
@@ -449,6 +447,24 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
 
     onChange(set(arranged));
   }, [onChange, value]);
+
+  // Handler for editing a media item
+  const handleItemEdit = useCallback(
+    (key: string, updates: Partial<MediaGridItem>) => {
+      const items = (value || []) as MediaGridItem[];
+      const newItems = items.map((item) => {
+        if (item._key !== key) return item;
+        return { ...item, ...updates };
+      });
+      onChange(set(newItems));
+    },
+    [onChange, value]
+  );
+
+  // Find the item being edited
+  const editingItem = editingItemKey
+    ? ((value || []) as MediaGridItem[]).find((item) => item._key === editingItemKey)
+    : null;
 
   const activeUploads = uploads.filter(
     (u) => u.status === 'pending' || u.status === 'uploading' || u.status === 'processing'
@@ -469,6 +485,15 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
         />
       )}
 
+      {/* Media Edit Dialog */}
+      {editingItem && (
+        <MediaEditDialog
+          item={editingItem}
+          onSave={(updates) => handleItemEdit(editingItem._key, updates)}
+          onClose={() => setEditingItemKey(null)}
+        />
+      )}
+
       {/* Visual grid preview for arranging media */}
       <MediaGridPreview
         items={(value || []) as MediaGridItem[]}
@@ -476,6 +501,7 @@ export default function BulkMediaUpload(props: ArrayOfObjectsInputProps) {
         onRemove={handleRemoveFromGrid}
         onAutoArrange={handleAutoArrange}
         onDeduplicate={handleDeduplicate}
+        onItemClick={readOnly ? undefined : (key) => setEditingItemKey(key)}
         readOnly={readOnly}
       />
 
