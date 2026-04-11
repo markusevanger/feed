@@ -27,19 +27,14 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Install production dependencies
-# vips-dev for sharp, ffmpeg for video metadata extraction
-RUN apk add --no-cache vips-dev ffmpeg
+# vips for sharp runtime, ffmpeg for video metadata extraction
+RUN apk add --no-cache vips ffmpeg
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy workspace files for pnpm
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/shared ./packages/shared
-COPY apps/media-server/package.json ./apps/media-server/
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Copy node_modules from builder (avoids Sharp rebuild issues)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/apps/media-server/node_modules ./apps/media-server/node_modules
+COPY --from=builder /app/apps/media-server/package.json ./apps/media-server/
 
 # Copy built files from builder
 COPY --from=builder /app/apps/media-server/dist ./apps/media-server/dist
